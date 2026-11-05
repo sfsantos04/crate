@@ -25,6 +25,21 @@ struct SettingsView: View {
                     .disabled(hostDraft.isEmpty || password.isEmpty)
                 }
 
+                if store.forkMode {
+                    Section("Fork") {
+                        NavigationLink {
+                            TransferSettingsView()
+                        } label: {
+                            Label("Slots e velocidades", systemImage: "speedometer")
+                        }
+                        NavigationLink {
+                            WishlistView()
+                        } label: {
+                            Label("Wishlist", systemImage: "bookmark")
+                        }
+                    }
+                }
+
                 Section("Sessão") {
                     LabeledContent("Usuário", value: store.username.isEmpty ? "—" : store.username)
                     LabeledContent("Host", value: store.host)
