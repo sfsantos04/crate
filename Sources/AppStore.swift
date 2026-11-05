@@ -54,6 +54,12 @@ final class AppStore: ObservableObject {
     /// Mensagem curta de retorno de ação (enfileirou, falhou, entrou na sala).
     @Published var actionMessage: String?
 
+    // Listas e wishlist (fork)
+    @Published var buddies: [Buddy] = []
+    @Published var ignoredUsers: [String] = []
+    @Published var wishlist: [WishlistItem] = []
+    @Published var wishlistBusy = false
+
     let realtime = RealtimeClient()
 
     let client = SlskdClient()

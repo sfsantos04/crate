@@ -9,17 +9,24 @@ struct SocialView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if mode == 0 { conversationsList } else { roomsList }
+                if mode == 0 {
+                    conversationsList
+                } else if mode == 1 {
+                    roomsList
+                } else {
+                    ListsView()
+                }
             }
-            .navigationTitle(mode == 0 ? "Chat" : "Salas")
+            .navigationTitle(mode == 0 ? "Chat" : (mode == 1 ? "Salas" : "Listas"))
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("Modo", selection: $mode) {
                         Text("Chat").tag(0)
                         Text("Salas").tag(1)
+                        Text("Listas").tag(2)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 190)
+                    .frame(width: 230)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

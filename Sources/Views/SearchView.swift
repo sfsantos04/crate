@@ -24,6 +24,7 @@ struct SearchView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showBrowse = false
     @State private var showFilters = false
+    @State private var showWishlist = false
     @State private var filters = SearchFilters()
 
     var body: some View {
@@ -106,10 +107,22 @@ struct SearchView: View {
                     .presentationDetents([.medium])
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if store.forkMode {
+                        Button {
+                            showWishlist = true
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Limpar") { store.clearSearch() }
                         .disabled(store.search == nil)
                 }
+            }
+            .sheet(isPresented: $showWishlist) {
+                WishlistView().environmentObject(store)
             }
         }
     }
