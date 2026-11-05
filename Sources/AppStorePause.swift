@@ -10,6 +10,17 @@ extension AppStore {
         }
     }
 
+    func enqueueFile(peer: String, path: String, size: Int64) async {
+        do {
+            try await client.enqueue(username: peer, files: [(filename: path, size: size)])
+            flash("Na fila")
+            await refresh()
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            flash("Falhou: \(message)")
+        }
+    }
+
     func togglePause() async {
         do {
             if queuePaused {

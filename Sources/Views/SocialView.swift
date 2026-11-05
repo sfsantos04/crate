@@ -261,6 +261,7 @@ struct RoomThreadView: View {
     @State private var draft = ""
     @State private var members: [String] = []
     @State private var showMembers = false
+    @State private var showScopedSearch = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -303,6 +304,13 @@ struct RoomThreadView: View {
         .navigationTitle(room)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showScopedSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task {
@@ -313,6 +321,9 @@ struct RoomThreadView: View {
                     Image(systemName: "person.2")
                 }
             }
+        }
+        .sheet(isPresented: $showScopedSearch) {
+            ScopedSearchView(room: room, username: nil).environmentObject(store)
         }
         .sheet(isPresented: $showMembers) {
             NavigationStack {

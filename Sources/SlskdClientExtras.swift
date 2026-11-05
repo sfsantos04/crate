@@ -63,6 +63,28 @@ extension SlskdClient {
         return try decode(InterestPair.self, from: data)
     }
 
+    // MARK: Busca com escopo
+
+    func searchRoom(_ room: String, text: String) async throws -> String {
+        let body = try JSONSerialization.data(withJSONObject: ["roomName": room, "text": text])
+        let data = try await send("/api/v0/searches/room", method: "POST", body: body)
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let id = object["id"] as? String else {
+            throw SlskdError.malformed("busca sem id")
+        }
+        return id
+    }
+
+    func searchUser(_ username: String, text: String) async throws -> String {
+        let body = try JSONSerialization.data(withJSONObject: ["username": username, "text": text])
+        let data = try await send("/api/v0/searches/user", method: "POST", body: body)
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let id = object["id"] as? String else {
+            throw SlskdError.malformed("busca sem id")
+        }
+        return id
+    }
+
     // MARK: Pausa da fila
 
     func pausedState() async throws -> (paused: Bool, held: Int) {

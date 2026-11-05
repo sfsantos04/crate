@@ -10,6 +10,7 @@ struct UserProfileView: View {
     @State private var note = ""
     @State private var loaded = false
     @State private var showBrowse = false
+    @State private var showScopedSearch = false
 
     var body: some View {
         List {
@@ -113,6 +114,11 @@ struct UserProfileView: View {
                           systemImage: "nosign")
                 }
                 Button {
+                    showScopedSearch = true
+                } label: {
+                    Label("Buscar nos arquivos dele", systemImage: "magnifyingglass")
+                }
+                Button {
                     showBrowse = true
                     Task { await store.browse(username) }
                 } label: {
@@ -121,6 +127,9 @@ struct UserProfileView: View {
             } header: {
                 SectionLabel(text: "Ações")
             }
+        }
+        .sheet(isPresented: $showScopedSearch) {
+            ScopedSearchView(room: nil, username: username).environmentObject(store)
         }
         .sheet(isPresented: $showBrowse) { BrowseView().environmentObject(store) }
         .navigationTitle(username)
