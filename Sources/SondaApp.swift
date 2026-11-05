@@ -39,6 +39,8 @@ struct RootView: View {
 }
 
 struct MainTabs: View {
+    @EnvironmentObject private var store: AppStore
+
     var body: some View {
         TabView {
             DashboardView()
@@ -47,6 +49,9 @@ struct MainTabs: View {
                 .tabItem { Label("Buscar", systemImage: "magnifyingglass") }
             TransfersView()
                 .tabItem { Label("Transferências", systemImage: "arrow.down.circle") }
+            SocialView()
+                .tabItem { Label("Social", systemImage: "bubble.left.and.bubble.right") }
+                .badge(store.unreadTotal)
             SettingsView()
                 .tabItem { Label("Ajustes", systemImage: "gearshape") }
         }

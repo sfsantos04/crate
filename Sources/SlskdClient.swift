@@ -98,7 +98,7 @@ actor SlskdClient {
 
     // MARK: Transporte
 
-    private func raw(_ path: String, method: String, body: Data?) async throws -> Data {
+    func raw(_ path: String, method: String, body: Data?) async throws -> Data {
         guard let base = baseURL else { throw SlskdError.badHost }
         guard let url = URL(string: path, relativeTo: base) else { throw SlskdError.badHost }
         var request = URLRequest(url: url)
@@ -121,7 +121,7 @@ actor SlskdClient {
     }
 
     /// Uma repetição em caso de 401: renova o token e repete.
-    private func send(_ path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
+    func send(_ path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
         try await ensureToken()
         do {
             return try await raw(path, method: method, body: body)
@@ -132,7 +132,7 @@ actor SlskdClient {
         }
     }
 
-    private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+    func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {

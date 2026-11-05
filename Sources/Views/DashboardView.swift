@@ -50,6 +50,20 @@ struct DashboardView: View {
                     LabeledContent("Enviando", value: "\(store.uploads.flatMap { $0.files }.count)")
                 }
 
+                Section("Atividade recente") {
+                    if store.events.isEmpty {
+                        Text("Sem eventos do servidor.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    ForEach(Array(store.events.prefix(6))) { event in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(event.friendly).font(.caption)
+                            Text(event.timestamp ?? "")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
                 if let message = store.errorMessage {
                     Section { ErrorBanner(message: message) }
                 }

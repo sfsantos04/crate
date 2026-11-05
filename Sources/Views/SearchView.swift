@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @EnvironmentObject private var store: AppStore
+    @State private var showBrowse = false
 
     var body: some View {
         NavigationStack {
@@ -50,6 +51,9 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Buscar")
+            .sheet(isPresented: $showBrowse) {
+                BrowseView().environmentObject(store)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Limpar") { store.clearSearch() }
@@ -63,6 +67,15 @@ struct SearchView: View {
     private func peerHeader(_ peer: SearchResponse) -> some View {
         HStack {
             Text(peer.username ?? "peer").font(.caption).bold()
+            Button {
+                Task {
+                    await store.browse(peer.username ?? "")
+                    showBrowse = true
+                }
+            } label: {
+                Image(systemName: "folder")
+            }
+            .buttonStyle(.borderless)
             Spacer()
             if peer.hasFreeUploadSlot == true {
                 Text("slot livre").font(.caption2).foregroundStyle(.green)

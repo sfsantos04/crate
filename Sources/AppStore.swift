@@ -22,7 +22,22 @@ final class AppStore: ObservableObject {
     @Published var searching = false
     @Published var searchMessage: String?
 
-    private let client = SlskdClient()
+    // Social, navegação e diagnóstico
+    @Published var conversations: [Conversation] = []
+    @Published var activePeer: String?
+    @Published var thread: [ChatMessage] = []
+    @Published var rooms: [RoomInfo] = []
+    @Published var joinedRooms: [RoomInfo] = []
+    @Published var activeRoom: String?
+    @Published var roomThread: [RoomMessage] = []
+    @Published var browsePeer: String?
+    @Published var browseDirectories: [BrowseDirectory] = []
+    @Published var browseProgress: Double = 0
+    @Published var events: [EventItem] = []
+    @Published var positions: [String: Int] = [:]
+    @Published var socialBusy = false
+
+    let client = SlskdClient()
     private var monitor: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
 
@@ -95,6 +110,12 @@ final class AppStore: ObservableObject {
             snapshot = try await client.application()
             downloads = try await client.downloads()
             uploads = try await client.uploads()
+            if let recentEvents = try? await client.events() {
+                events = Array(recentEvents.suffix(40).reversed())
+            }
+            if let list = try? await client.conversations() {
+                conversations = list.filter { ($0.isActive ?? true) || ($0.unread > 0) }
+            }
             lastUpdate = Date()
             errorMessage = nil
         } catch {

@@ -37,7 +37,19 @@ struct TransfersView: View {
                 }
             }
             .navigationTitle("Transferências")
-            .refreshable { await store.refresh() }
+            .refreshable {
+                await store.refresh()
+                await store.loadPositions()
+            }
+            .task { await store.loadPositions() }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Limpar concluídas") {
+                        Task { await store.clearCompleted() }
+                    }
+                    .font(.caption)
+                }
+            }
         }
     }
 
@@ -52,6 +64,9 @@ struct TransfersView: View {
                 Text(Fmt.speed(file.averageSpeed)).font(.caption2).foregroundStyle(.secondary)
                 Text("\(Int(file.progress * 100))%").font(.caption2).foregroundStyle(.secondary)
                 Text(Fmt.bytes(file.size)).font(.caption2).foregroundStyle(.tertiary)
+                if let position = store.positions[file.id], !file.isFinished {
+                    Text("fila #\(position)").font(.caption2).foregroundStyle(.orange)
+                }
                 Spacer()
                 if !file.isFinished {
                     Text(Fmt.eta(file)).font(.caption2).foregroundStyle(.tertiary)
@@ -66,6 +81,14 @@ struct TransfersView: View {
                 } label: {
                     Label("Cancelar", systemImage: "xmark")
                 }
+            }
+            if file.isFailed {
+                Button {
+                    Task { await store.retry(file) }
+                } label: {
+                    Label("Tentar de novo", systemImage: "arrow.clockwise")
+                }
+                .tint(.blue)
             }
         }
     }
