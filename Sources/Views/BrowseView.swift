@@ -40,6 +40,11 @@ struct BrowseView: View {
                         HStack {
                             Text(directory.name ?? "?")
                             Spacer()
+                            Button("abrir") {
+                                Task { await store.browseSubdirectory(directory.name ?? "") }
+                            }
+                            .font(.caption2)
+                            .buttonStyle(.borderless)
                             Button("baixar pasta") {
                                 Task { await store.downloadBrowseDirectory(directory, peer: store.browsePeer ?? "") }
                             }

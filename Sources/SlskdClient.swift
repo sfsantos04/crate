@@ -25,7 +25,7 @@ enum SlskdError: LocalizedError, Equatable {
 /// Autentica por JWT em /api/v0/session e renova sozinho quando o token expira.
 actor SlskdClient {
     private var baseURL: URL?
-    private var token: String?
+    private(set) var token: String?
     private var username = ""
     private var password = ""
 

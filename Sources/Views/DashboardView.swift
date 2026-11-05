@@ -46,8 +46,13 @@ struct DashboardView: View {
                 }
 
                 Section("Compartilhamento") {
-                    LabeledContent("Pastas", value: "\(store.snapshot?.shareDirectories ?? 0)")
-                    LabeledContent("Arquivos", value: "\(store.snapshot?.shareFiles ?? 0)")
+                    NavigationLink {
+                        SharesView()
+                    } label: {
+                        LabeledContent("Pastas e arquivos",
+                                       value: "\(store.snapshot?.shareDirectories ?? 0) · \(store.snapshot?.shareFiles ?? 0)")
+                    }
+                    LabeledContent("Reinício pendente", value: (store.snapshot?.pendingRestart ?? false) ? "sim" : "não")
                 }
 
                 Section("Rede distribuída") {

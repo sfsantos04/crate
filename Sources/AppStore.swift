@@ -2,6 +2,8 @@ import Foundation
 
 @MainActor
 final class AppStore: ObservableObject {
+    static let shared = AppStore()
+
     // Sessão
     @Published var host: String = UserDefaults.standard.string(forKey: "host") ?? ""
     @Published var username: String = UserDefaults.standard.string(forKey: "username") ?? ""
@@ -36,6 +38,9 @@ final class AppStore: ObservableObject {
     @Published var events: [EventItem] = []
     @Published var positions: [String: Int] = [:]
     @Published var socialBusy = false
+    @Published var realtimeConnected = false
+
+    let realtime = RealtimeClient()
 
     let client = SlskdClient()
     private var monitor: Task<Void, Never>?
@@ -63,6 +68,7 @@ final class AppStore: ObservableObject {
             isSignedIn = true
             await refresh()
             startMonitoring()
+            startRealtime()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             isSignedIn = false
@@ -74,6 +80,7 @@ final class AppStore: ObservableObject {
     func signOut() {
         monitor?.cancel()
         monitor = nil
+        stopRealtime()
         searchTask?.cancel()
         searchTask = nil
         Keychain.remove("password")

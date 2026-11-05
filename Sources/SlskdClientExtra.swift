@@ -23,6 +23,10 @@ extension SlskdClient {
 
     // MARK: Shares
 
+    func sharesRaw() async throws -> Data {
+        try await send("/api/v0/shares")
+    }
+
     func rescanShares() async throws {
         _ = try await send("/api/v0/shares", method: "PUT")
     }

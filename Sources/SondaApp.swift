@@ -2,7 +2,8 @@ import SwiftUI
 
 @main
 struct SondaApp: App {
-    @StateObject private var store = AppStore()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var store = AppStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -28,12 +29,24 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
-                if store.isSignedIn { store.startMonitoring() }
-            case .background, .inactive:
+                if store.isSignedIn {
+                    store.startMonitoring()
+                    store.startRealtime()
+                    BackgroundRefresh.updateBadge(store: store)
+                }
+            case .background:
                 store.stopMonitoring()
+                store.stopRealtime()
+                BackgroundRefresh.updateBadge(store: store)
+                BackgroundRefresh.schedule()
+            case .inactive:
+                break
             @unknown default:
                 break
             }
+        }
+        .task {
+            BackgroundRefresh.schedule()
         }
     }
 }
