@@ -63,6 +63,24 @@ extension SlskdClient {
         return try decode(InterestPair.self, from: data)
     }
 
+    // MARK: Pausa da fila
+
+    func pausedState() async throws -> (paused: Bool, held: Int) {
+        let data = try await send("/api/v0/transfers/paused")
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SlskdError.malformed("resposta de pausa inválida")
+        }
+        return ((object["paused"] as? Bool) ?? false, (object["held"] as? Int) ?? 0)
+    }
+
+    func pauseQueue() async throws {
+        _ = try await send("/api/v0/transfers/pause", method: "POST")
+    }
+
+    func resumeQueue() async throws {
+        _ = try await send("/api/v0/transfers/resume", method: "POST")
+    }
+
     // MARK: Wishlist
 
     func wishlist() async throws -> [WishlistItem] {

@@ -24,6 +24,20 @@ struct TransfersView: View {
                     uploadsContent
                 }
 
+                if store.queuePaused {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "pause.circle.fill").foregroundStyle(Theme.warn)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Fila pausada").font(.footnote.weight(.semibold))
+                                Text("\(store.heldTransfers) transferências seguradas. Nada novo começa até retomar.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
                 if let message = store.errorMessage {
                     Section { ErrorBanner(message: message) }
                 }
@@ -33,8 +47,22 @@ struct TransfersView: View {
                 await store.refresh()
                 await store.loadPositions()
             }
-            .task { await store.loadPositions() }
+            .task {
+                await store.loadPositions()
+                await store.loadPauseState()
+            }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if store.forkMode {
+                        Button {
+                            Task { await store.togglePause() }
+                        } label: {
+                            Label(store.queuePaused ? "Retomar" : "Pausar",
+                                  systemImage: store.queuePaused ? "play.fill" : "pause.fill")
+                        }
+                        .tint(store.queuePaused ? Theme.warn : Theme.accent)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Limpar") {
                         confirmClear = true

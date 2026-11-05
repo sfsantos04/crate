@@ -59,6 +59,8 @@ final class AppStore: ObservableObject {
     @Published var ignoredUsers: [String] = []
     @Published var wishlist: [WishlistItem] = []
     @Published var wishlistBusy = false
+    @Published var queuePaused = false
+    @Published var heldTransfers = 0
 
     let realtime = RealtimeClient()
 
