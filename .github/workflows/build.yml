@@ -1,0 +1,48 @@
+name: build-ipa
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: XcodeGen
+        run: brew install xcodegen
+
+      - name: Gerar projeto
+        run: xcodegen generate
+
+      - name: Compilar (sem assinatura)
+        run: |
+          xcodebuild \
+            -project Sonda.xcodeproj \
+            -scheme Sonda \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Empacotar IPA
+        run: |
+          mkdir -p out/Payload
+          cp -R build/Build/Products/Release-iphoneos/Sonda.app out/Payload/
+          cd out
+          zip -qry ../Sonda-unsigned.ipa Payload
+          cd ..
+          ls -l Sonda-unsigned.ipa
+          shasum -a 256 Sonda-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sonda-unsigned-ipa
+          path: Sonda-unsigned.ipa
+          if-no-files-found: error

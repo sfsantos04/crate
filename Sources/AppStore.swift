@@ -1,0 +1,228 @@
+import Foundation
+
+@MainActor
+final class AppStore: ObservableObject {
+    // Sessão
+    @Published var host: String = UserDefaults.standard.string(forKey: "host") ?? "192.168.1.43:5030"
+    @Published var username: String = UserDefaults.standard.string(forKey: "username") ?? ""
+    @Published var isSignedIn = false
+    @Published var busy = false
+    @Published var errorMessage: String?
+
+    // Estado do servidor
+    @Published var server: ServerState?
+    @Published var snapshot: ApplicationSnapshot?
+    @Published var downloads: [TransferUser] = []
+    @Published var uploads: [TransferUser] = []
+    @Published var lastUpdate: Date?
+
+    // Busca
+    @Published var query = ""
+    @Published var search: SearchResultSet?
+    @Published var searching = false
+    @Published var searchMessage: String?
+
+    private let client = SlskdClient()
+    private var monitor: Task<Void, Never>?
+    private var searchTask: Task<Void, Never>?
+
+    // MARK: Ciclo de vida
+
+    func bootstrap() async {
+        guard !isSignedIn else { return }
+        guard let password = Keychain.get("password"), !username.isEmpty else { return }
+        await signIn(host: host, username: username, password: password, quiet: true)
+    }
+
+    func signIn(host: String, username: String, password: String, quiet: Bool = false) async {
+        busy = true
+        errorMessage = nil
+        do {
+            try await client.configure(host: host, username: username, password: password)
+            _ = try await client.login(host: host, username: username, password: password)
+            self.host = host
+            self.username = username
+            UserDefaults.standard.set(host, forKey: "host")
+            UserDefaults.standard.set(username, forKey: "username")
+            Keychain.set(password, for: "password")
+            isSignedIn = true
+            await refresh()
+            startMonitoring()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            isSignedIn = false
+            if !quiet { Keychain.remove("password") }
+        }
+        busy = false
+    }
+
+    func signOut() {
+        monitor?.cancel()
+        monitor = nil
+        searchTask?.cancel()
+        searchTask = nil
+        Keychain.remove("password")
+        Task { await client.clear() }
+        isSignedIn = false
+        server = nil
+        snapshot = nil
+        downloads = []
+        uploads = []
+        search = nil
+        lastUpdate = nil
+    }
+
+    // MARK: Monitoramento
+
+    func startMonitoring() {
+        monitor?.cancel()
+        monitor = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refresh()
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+        }
+    }
+
+    func stopMonitoring() {
+        monitor?.cancel()
+        monitor = nil
+    }
+
+    func refresh() async {
+        do {
+            server = try await client.serverState()
+            snapshot = try await client.application()
+            downloads = try await client.downloads()
+            uploads = try await client.uploads()
+            lastUpdate = Date()
+            errorMessage = nil
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func toggleConnection() async {
+        guard let current = server else { return }
+        do {
+            try await client.setConnected(!current.connected)
+            await refresh()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    // MARK: Busca
+
+    func runSearch() async {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count >= 2 else {
+            searchMessage = "Digite ao menos dois caracteres."
+            return
+        }
+        searchTask?.cancel()
+        searching = true
+        searchMessage = "Consultando a rede…"
+        do {
+            let started = try await client.startSearch(text: text)
+            guard let id = started.id else {
+                searchMessage = "O slskd não devolveu id de busca."
+                searching = false
+                return
+            }
+            searchTask = Task { [weak self] in
+                guard let self else { return }
+                for _ in 0..<20 {
+                    if Task.isCancelled { return }
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    do {
+                        let current = try await self.client.search(id: id)
+                        await MainActor.run {
+                            self.search = current
+                            self.searchMessage = current.complete
+                                ? "\(current.fileCount ?? 0) arquivos de \(current.responseCount ?? 0) peers"
+                                : "Recebendo resultados…"
+                        }
+                        if current.complete { break }
+                    } catch {
+                        await MainActor.run {
+                            self.searchMessage = (error as? LocalizedError)?.errorDescription
+                                ?? error.localizedDescription
+                        }
+                    }
+                }
+                await MainActor.run { self.searching = false }
+            }
+        } catch {
+            searchMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            searching = false
+        }
+    }
+
+    func clearSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        if let id = search?.id {
+            Task { try? await client.deleteSearch(id: id) }
+        }
+        search = nil
+        searchMessage = nil
+        searching = false
+    }
+
+    // MARK: Ações em arquivos
+
+    func download(file: SearchFile, from peer: String) async {
+        guard let filename = file.filename else { return }
+        do {
+            try await client.enqueue(username: peer, files: [(filename: filename, size: file.size ?? 0)])
+            await refresh()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func downloadFolder(_ files: [SearchFile], from peer: String) async {
+        let payload = files.compactMap { file -> (filename: String, size: Int64)? in
+            guard let name = file.filename else { return nil }
+            return (filename: name, size: file.size ?? 0)
+        }
+        guard !payload.isEmpty else { return }
+        do {
+            try await client.enqueue(username: peer, files: payload)
+            await refresh()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func cancel(file: TransferFile) async {
+        guard let transferID = file.transferID, let user = file.username else { return }
+        do {
+            try await client.cancel(username: user, transferID: transferID)
+            await refresh()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    // MARK: Derivados
+
+    var activeDownloads: [TransferFile] {
+        downloads.flatMap { $0.files }.filter { !$0.isFinished }
+    }
+
+    var finishedDownloads: [TransferFile] {
+        downloads.flatMap { $0.files }.filter { $0.isFinished && !$0.isFailed }
+    }
+
+    var totalSpeed: Double {
+        activeDownloads.reduce(0) { $0 + ($1.averageSpeed ?? 0) }
+    }
+
+    var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        return "\(v) (\(b))"
+    }
+}
