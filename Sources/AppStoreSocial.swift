@@ -78,8 +78,11 @@ extension AppStore {
         do {
             try await client.joinRoom(name)
             await loadRooms()
+            flash("Entrou em \(name)")
         } catch {
-            errorMessage = describe(error)
+            let message = describe(error)
+            errorMessage = message
+            flash("Falhou ao entrar: \(message)")
         }
         socialBusy = false
     }
@@ -160,9 +163,12 @@ extension AppStore {
         guard let name = file.filename else { return }
         do {
             try await client.enqueue(username: peer, files: [(filename: name, size: file.size ?? 0)])
+            flash("Na fila: \(file.displayName)")
             await refresh()
         } catch {
-            errorMessage = describe(error)
+            let message = describe(error)
+            errorMessage = message
+            flash("Falhou: \(message)")
         }
     }
 
@@ -174,9 +180,12 @@ extension AppStore {
         guard !payload.isEmpty else { return }
         do {
             try await client.enqueue(username: peer, files: payload)
+            flash("\(payload.count) arquivos na fila de \(peer)")
             await refresh()
         } catch {
-            errorMessage = describe(error)
+            let message = describe(error)
+            errorMessage = message
+            flash("Falhou: \(message)")
         }
     }
 
@@ -196,9 +205,12 @@ extension AppStore {
         guard let name = file.filename, let peer = file.username else { return }
         do {
             try await client.enqueue(username: peer, files: [(filename: name, size: file.size ?? 0)])
+            flash("Reenfileirado: \(name.split(separator: "\\").last ?? "")")
             await refresh()
         } catch {
-            errorMessage = describe(error)
+            let message = describe(error)
+            errorMessage = message
+            flash("Falhou: \(message)")
         }
     }
 

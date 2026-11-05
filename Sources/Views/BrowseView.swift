@@ -7,6 +7,13 @@ struct BrowseView: View {
     var body: some View {
         NavigationStack {
             List {
+                if let action = store.actionMessage {
+                    Section {
+                        Label(action, systemImage: action.hasPrefix("Falhou") ? "exclamationmark.triangle" : "checkmark.circle")
+                            .font(.footnote)
+                            .foregroundStyle(action.hasPrefix("Falhou") ? Theme.danger : Theme.ok)
+                    }
+                }
                 if store.browseDirectories.isEmpty {
                     Section {
                         ContentUnavailableView(

@@ -51,6 +51,9 @@ final class AppStore: ObservableObject {
     @Published var profileNote: String?
     @Published var profileLoading = false
 
+    /// Mensagem curta de retorno de ação (enfileirou, falhou, entrou na sala).
+    @Published var actionMessage: String?
+
     let realtime = RealtimeClient()
 
     let client = SlskdClient()
@@ -216,9 +219,12 @@ final class AppStore: ObservableObject {
         guard let filename = file.filename else { return }
         do {
             try await client.enqueue(username: peer, files: [(filename: filename, size: file.size ?? 0)])
+            flash("Na fila: \(file.displayName)")
             await refresh()
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = message
+            flash("Falhou: \(message)")
         }
     }
 
@@ -230,9 +236,23 @@ final class AppStore: ObservableObject {
         guard !payload.isEmpty else { return }
         do {
             try await client.enqueue(username: peer, files: payload)
+            flash("\(payload.count) arquivos na fila de \(peer)")
             await refresh()
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = message
+            flash("Falhou: \(message)")
+        }
+    }
+
+    /// Mensagem curta que se apaga sozinha.
+    func flash(_ text: String) {
+        actionMessage = text
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            if self?.actionMessage == text {
+                self?.actionMessage = nil
+            }
         }
     }
 

@@ -42,6 +42,13 @@ struct SocialView: View {
 
     private var conversationsList: some View {
         List {
+            if let action = store.actionMessage {
+                Section {
+                    Label(action, systemImage: action.hasPrefix("Falhou") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .font(.footnote)
+                        .foregroundStyle(action.hasPrefix("Falhou") ? Theme.danger : Theme.ok)
+                }
+            }
             if store.conversations.isEmpty {
                 EmptyState(title: "Sem conversas",
                            systemImage: "bubble.left.and.bubble.right",
@@ -97,6 +104,13 @@ struct SocialView: View {
 
     private var roomsList: some View {
         List {
+            if let action = store.actionMessage {
+                Section {
+                    Label(action, systemImage: action.hasPrefix("Falhou") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .font(.footnote)
+                        .foregroundStyle(action.hasPrefix("Falhou") ? Theme.danger : Theme.ok)
+                }
+            }
             Section {
                 Toggle(isOn: $sortByUsers) {
                     Label("Ordenar por usuários", systemImage: "person.3.fill")
@@ -121,14 +135,11 @@ struct SocialView: View {
 
             Section {
                 ForEach(visibleRooms.prefix(300)) { room in
-                    roomRow(room, joined: false)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            Task {
-                                await store.join(room.name ?? "")
-                                await store.openRoom(room.name ?? "")
-                            }
-                        }
+                    NavigationLink {
+                        RoomThreadView(room: room.name ?? "")
+                    } label: {
+                        roomRow(room, joined: false)
+                    }
                 }
             } header: {
                 SectionLabel(text: "Disponíveis · \(visibleRooms.count)")
@@ -312,6 +323,9 @@ struct RoomThreadView: View {
             .presentationDetents([.medium, .large])
         }
         .task {
+            if !store.joinedRooms.contains(where: { $0.name == room }) {
+                await store.join(room)
+            }
             await store.openRoom(room)
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 5_000_000_000)

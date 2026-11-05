@@ -218,10 +218,14 @@ actor SlskdClient {
     }
 
     func enqueue(username: String, files: [(filename: String, size: Int64)]) async throws {
-        let escaped = username.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? username
-        let payload = files.map { ["filename": $0.filename, "size": $0.size] as [String: Any] }
+        // Endpoint de lote: o username vai no corpo, então nomes com "/" ou ":"
+        // não quebram a rota.
+        let payload: [String: Any] = [
+            "username": username,
+            "files": files.map { ["filename": $0.filename, "size": $0.size] },
+        ]
         let body = try JSONSerialization.data(withJSONObject: payload)
-        _ = try await send("/api/v0/transfers/downloads/\(escaped)", method: "POST", body: body)
+        _ = try await send("/api/v0/transfers/downloads/batches", method: "POST", body: body)
     }
 
     func cancel(username: String, transferID: String) async throws {

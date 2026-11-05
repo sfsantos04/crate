@@ -63,6 +63,11 @@ struct SearchView: View {
                     if let message = store.searchMessage {
                         Text(message).font(.footnote).foregroundStyle(.secondary)
                     }
+                    if let action = store.actionMessage {
+                        Label(action, systemImage: action.hasPrefix("Falhou") ? "exclamationmark.triangle" : "checkmark.circle")
+                            .font(.footnote)
+                            .foregroundStyle(action.hasPrefix("Falhou") ? Theme.danger : Theme.ok)
+                    }
                 }
 
                 if !filteredPeers.isEmpty {
