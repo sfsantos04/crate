@@ -3,6 +3,8 @@ import SwiftUI
 struct TransfersView: View {
     @EnvironmentObject private var store: AppStore
     @State private var mode = 0
+    @State private var selected: TransferFile?
+    @State private var confirmClear = false
 
     var body: some View {
         NavigationStack {
@@ -35,10 +37,22 @@ struct TransfersView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Limpar") {
-                        Task { await store.clearCompleted() }
+                        confirmClear = true
                     }
                     .font(.caption)
                 }
+            }
+            .confirmationDialog("Apagar os concluídos da lista?", isPresented: $confirmClear, titleVisibility: .visible) {
+                Button("Apagar concluídos", role: .destructive) {
+                    Task { await store.clearCompleted() }
+                }
+                Button("Cancelar", role: .cancel) {}
+            } message: {
+                Text("Só remove da lista. Os arquivos continuam no servidor.")
+            }
+            .sheet(item: $selected) { file in
+                TransferDetailView(file: file)
+                    .environmentObject(store)
             }
         }
     }
@@ -132,6 +146,8 @@ struct TransfersView: View {
             }
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { selected = file }
         .swipeActions {
             if !file.isFinished {
                 Button(role: .destructive) {
@@ -146,6 +162,13 @@ struct TransfersView: View {
                     Label("Cancelar", systemImage: "xmark")
                 }
             }
+            if file.isFinished {
+                Button(role: .destructive) {
+                    Task { await store.cancel(file: file) }
+                } label: {
+                    Label("Remover", systemImage: "trash")
+                }
+            }
             if file.isFailed && !uploading {
                 Button {
                     Task { await store.retry(file) }
@@ -158,7 +181,7 @@ struct TransfersView: View {
     }
 }
 
-private extension TransferFile {
+extension TransferFile {
     var displayNameLabel: String {
         guard let raw = filename else { return "?" }
         return raw.split(whereSeparator: { $0 == "\\" || $0 == "/" }).last.map(String.init) ?? raw

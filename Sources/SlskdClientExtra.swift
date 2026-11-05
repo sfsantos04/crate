@@ -8,7 +8,7 @@ extension SlskdClient {
     // MARK: Uploads
 
     func cancelUpload(username: String, id: String) async throws {
-        _ = try await send("/api/v0/transfers/uploads/\(esc(username))/\(esc(id))?remove=false",
+        _ = try await send("/api/v0/transfers/uploads/\(esc(username))/\(esc(id))?remove=true",
                            method: "DELETE")
     }
 

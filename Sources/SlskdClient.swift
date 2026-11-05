@@ -231,7 +231,7 @@ actor SlskdClient {
     func cancel(username: String, transferID: String) async throws {
         let user = username.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? username
         let id = transferID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? transferID
-        _ = try await send("/api/v0/transfers/downloads/\(user)/\(id)?remove=false", method: "DELETE")
+        _ = try await send("/api/v0/transfers/downloads/\(user)/\(id)?remove=true", method: "DELETE")
     }
 
     // MARK: Conversas (implementação em SlskdClientSocial.swift)
