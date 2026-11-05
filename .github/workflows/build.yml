@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   ipa:
@@ -63,6 +63,17 @@ jobs:
             Sonda-unsigned.ipa.sha256
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publicar release com o IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "build-${{ github.run_number }}" \
+            Sonda-unsigned.ipa \
+            Sonda-unsigned.ipa.sha256 \
+            --title "Sonda build ${{ github.run_number }}" \
+            --notes "IPA sem assinatura gerado no CI. Instale com SideStore, AltStore ou Sideloadly."
 
       - name: Upload do log (só em falha)
         if: failure()
