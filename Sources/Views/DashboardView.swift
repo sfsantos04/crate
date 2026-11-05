@@ -42,7 +42,13 @@ struct DashboardView: View {
                     LabeledContent("Usuário", value: store.snapshot?.username ?? "—")
                     LabeledContent("Privilegiado", value: (store.snapshot?.privileged ?? false) ? "sim" : "não")
                     LabeledContent("Versão do slskd", value: store.snapshot?.version ?? "—")
-                    LabeledContent("Reinício pendente", value: (store.snapshot?.pendingRestart ?? false) ? "sim" : "não")
+                    if store.forkMode {
+                        NavigationLink {
+                            ProfileView()
+                        } label: {
+                            Label("Perfil estendido", systemImage: "person.crop.circle.badge.checkmark")
+                        }
+                    }
                 }
 
                 Section("Compartilhamento") {

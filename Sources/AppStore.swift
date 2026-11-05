@@ -40,6 +40,17 @@ final class AppStore: ObservableObject {
     @Published var socialBusy = false
     @Published var realtimeConnected = false
 
+    // Recursos do fork (detectados em runtime)
+    @Published var forkMode = false
+    @Published var myLikes: [String] = []
+    @Published var myHates: [String] = []
+    @Published var similar: [SimilarUser] = []
+    @Published var globalRecommendations: [Recommendation] = []
+    @Published var personalRecommendations: [Recommendation] = []
+    @Published var privilegesDays: Int?
+    @Published var profileNote: String?
+    @Published var profileLoading = false
+
     let realtime = RealtimeClient()
 
     let client = SlskdClient()
@@ -69,6 +80,7 @@ final class AppStore: ObservableObject {
             await refresh()
             startMonitoring()
             startRealtime()
+            await detectFork()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             isSignedIn = false
