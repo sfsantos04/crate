@@ -148,7 +148,7 @@ struct WishlistView: View {
                     }
                     .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
                 } header: {
-                    Section("Nova busca")
+                    SectionLabel(text: "Nova busca")
                 }
 
                 if store.wishlistBusy {
