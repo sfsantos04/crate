@@ -230,11 +230,5 @@ actor SlskdClient {
         _ = try await send("/api/v0/transfers/downloads/\(user)/\(id)?remove=false", method: "DELETE")
     }
 
-    // MARK: Conversas
-
-    func conversations() async throws -> [String] {
-        let data = try await send("/api/v0/conversations")
-        guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
-        return rows.compactMap { $0["username"] as? String }
-    }
+    // MARK: Conversas (implementação em SlskdClientSocial.swift)
 }
