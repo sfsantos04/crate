@@ -85,3 +85,14 @@ jobs:
             ${{ runner.temp }}/Sonda.xcresult
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Publicar log da falha como release
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/build.log" build.log
+          gh release create "log-${{ github.run_number }}" build.log \
+            --title "Log da falha build ${{ github.run_number }}" \
+            --notes "Log de compilação do run que falhou." || true
