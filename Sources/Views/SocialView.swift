@@ -317,7 +317,11 @@ struct RoomThreadView: View {
         .sheet(isPresented: $showMembers) {
             NavigationStack {
                 List(members, id: \.self) { member in
-                    Text(member).font(.subheadline)
+                    NavigationLink {
+                        UserProfileView(username: member)
+                    } label: {
+                        Text(member).font(.subheadline)
+                    }
                 }
                 .navigationTitle("\(members.count) na sala")
                 .navigationBarTitleDisplayMode(.inline)

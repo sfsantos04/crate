@@ -22,3 +22,11 @@ struct NoteResponse: Decodable {
     var username: String?
     var note: String?
 }
+
+struct UserStatistics: Decodable {
+    var fileCount: Int?
+    var directoryCount: Int?
+    var averageSpeed: Double?
+    var uploadCount: Int?
+    var countryCode: String?
+}

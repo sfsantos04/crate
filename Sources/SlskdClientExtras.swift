@@ -51,6 +51,18 @@ extension SlskdClient {
         _ = try await send("/api/v0/notes/\(seg(username))", method: "PUT", body: body)
     }
 
+    // MARK: Perfil de usuário
+
+    func statistics(of username: String) async throws -> UserStatistics {
+        let data = try await send("/api/v0/users/\(seg(username))/statistics")
+        return try decode(UserStatistics.self, from: data)
+    }
+
+    func interests(of username: String) async throws -> InterestPair {
+        let data = try await send("/api/v0/users/\(seg(username))/interests")
+        return try decode(InterestPair.self, from: data)
+    }
+
     // MARK: Wishlist
 
     func wishlist() async throws -> [WishlistItem] {
