@@ -3,15 +3,13 @@ import SwiftUI
 struct SocialView: View {
     @EnvironmentObject private var store: AppStore
     @State private var mode = 0
+    @State private var sortByUsers = true
+    @State private var roomQuery = ""
 
     var body: some View {
         NavigationStack {
             Group {
-                if mode == 0 {
-                    conversationsList
-                } else {
-                    roomsList
-                }
+                if mode == 0 { conversationsList } else { roomsList }
             }
             .navigationTitle(mode == 0 ? "Chat" : "Salas")
             .toolbar {
@@ -21,56 +19,51 @@ struct SocialView: View {
                         Text("Salas").tag(1)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 200)
+                    .frame(width: 190)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task {
-                            if mode == 0 { await store.loadConversations() } else { await store.loadRooms() }
-                        }
+                        Task { await reload() }
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
             }
-            .task {
-                if mode == 0 { await store.loadConversations() } else { await store.loadRooms() }
-            }
-            .onChange(of: mode) { _, value in
-                Task {
-                    if value == 0 { await store.loadConversations() } else { await store.loadRooms() }
-                }
-            }
+            .task { await reload() }
+            .onChange(of: mode) { _, _ in Task { await reload() } }
         }
     }
+
+    private func reload() async {
+        if mode == 0 { await store.loadConversations() } else { await store.loadRooms() }
+    }
+
+    // MARK: Chat
 
     private var conversationsList: some View {
         List {
             if store.conversations.isEmpty {
-                ContentUnavailableView(
-                    "Sem conversas",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Mensagens privadas trocadas pelo slskd aparecem aqui.")
-                )
+                EmptyState(title: "Sem conversas",
+                           systemImage: "bubble.left.and.bubble.right",
+                           detail: "Mensagens privadas trocadas pelo slskd aparecem aqui, com contador de não lidas.")
+                    .listRowBackground(Color.clear)
             }
             ForEach(store.conversations) { conversation in
                 NavigationLink {
                     ChatThreadView(peer: conversation.username ?? "")
                 } label: {
-                    HStack {
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill((conversation.isActive ?? false) ? Theme.ok : Color.secondary.opacity(0.4))
+                            .frame(width: 8, height: 8)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(conversation.username ?? "?").font(.subheadline).bold()
+                            Text(conversation.username ?? "?").font(.subheadline.weight(.medium))
                             Text((conversation.isActive ?? false) ? "ativa" : "inativa")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
                         Spacer()
                         if conversation.unread > 0 {
-                            Text("\(conversation.unread)")
-                                .font(.caption2).bold()
-                                .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(Color.accentColor.opacity(0.2))
-                                .clipShape(Capsule())
+                            CountPill(text: "\(conversation.unread)", tint: Theme.warn)
                         }
                     }
                 }
@@ -86,47 +79,96 @@ struct SocialView: View {
         .refreshable { await store.loadConversations() }
     }
 
+    // MARK: Salas
+
+    private var visibleRooms: [RoomInfo] {
+        let query = roomQuery.trimmingCharacters(in: .whitespaces)
+        var list = store.rooms
+        if !query.isEmpty {
+            list = list.filter { ($0.name ?? "").localizedCaseInsensitiveContains(query) }
+        }
+        if sortByUsers {
+            list.sort { ($0.userCount ?? 0) > ($1.userCount ?? 0) }
+        } else {
+            list.sort { ($0.name ?? "").localizedCaseInsensitiveCompare($1.name ?? "") == .orderedAscending }
+        }
+        return list
+    }
+
     private var roomsList: some View {
         List {
-            Section("Entradas") {
-                if store.joinedRooms.isEmpty {
-                    Text("Nenhuma sala.").font(.footnote).foregroundStyle(.secondary)
+            Section {
+                Toggle(isOn: $sortByUsers) {
+                    Label("Ordenar por usuários", systemImage: "person.3.fill")
+                        .font(.subheadline)
                 }
-                ForEach(store.joinedRooms) { room in
-                    NavigationLink {
-                        RoomThreadView(room: room.name ?? "")
-                    } label: {
-                        HStack {
-                            Text(room.name ?? "?").font(.subheadline)
-                            Spacer()
-                            Button("sair") {
-                                Task { await store.leave(room.name ?? "") }
-                            }
-                            .buttonStyle(.borderless)
-                            .font(.caption)
+                .tint(Theme.accent)
+            }
+
+            if !store.joinedRooms.isEmpty {
+                Section {
+                    ForEach(store.joinedRooms) { room in
+                        NavigationLink {
+                            RoomThreadView(room: room.name ?? "")
+                        } label: {
+                            roomRow(room, joined: true)
                         }
                     }
+                } header: {
+                    SectionLabel(text: "Entradas")
                 }
             }
-            Section("Disponíveis (\(store.rooms.count))") {
-                ForEach(store.rooms.prefix(200)) { room in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(room.name ?? "?").font(.subheadline).lineLimit(1)
-                            Text("\(room.userCount ?? 0) usuários\((room.isModerated ?? false) ? " · moderada" : "")")
-                                .font(.caption2).foregroundStyle(.secondary)
+
+            Section {
+                ForEach(visibleRooms.prefix(300)) { room in
+                    roomRow(room, joined: false)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            Task {
+                                await store.join(room.name ?? "")
+                                await store.openRoom(room.name ?? "")
+                            }
                         }
-                        Spacer()
-                        Button("entrar") {
-                            Task { await store.join(room.name ?? "") }
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.caption)
-                    }
                 }
+            } header: {
+                SectionLabel(text: "Disponíveis · \(visibleRooms.count)")
             }
         }
+        .searchable(text: $roomQuery, placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "filtrar salas")
         .refreshable { await store.loadRooms() }
+    }
+
+    @ViewBuilder
+    private func roomRow(_ room: RoomInfo, joined: Bool) -> some View {
+        let match = CountryFlag.detect(room.name ?? "")
+        HStack(spacing: 10) {
+            Text(match?.emoji ?? "🌐")
+                .font(.title3)
+                .accessibilityLabel(match?.name ?? "país não identificado")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(room.name ?? "?").font(.subheadline.weight(.medium)).lineLimit(1)
+                HStack(spacing: 6) {
+                    if let name = match?.name {
+                        Text(name).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if room.isModerated == true {
+                        Text("moderada").font(.caption2).foregroundStyle(Theme.warn)
+                    }
+                    if room.isPrivate == true {
+                        Text("privada").font(.caption2).foregroundStyle(Theme.danger)
+                    }
+                }
+            }
+            Spacer()
+            CountPill(text: "\(room.userCount ?? 0)", tint: joined ? Theme.ok : Theme.accent)
+            if !joined {
+                Image(systemName: "arrow.right.circle")
+                    .foregroundStyle(Theme.accent.opacity(0.7))
+                    .font(.footnote)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -141,14 +183,15 @@ struct ChatThreadView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         ForEach(store.thread) { message in
-                            bubble(message)
-                                .id(message.id)
+                            bubble(message).id(message.id)
                         }
                     }
                     .padding()
                 }
                 .onChange(of: store.thread.count) { _, _ in
-                    if let last = store.thread.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                    if let last = store.thread.last {
+                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
                 }
             }
             Divider()
@@ -161,7 +204,7 @@ struct ChatThreadView: View {
                     draft = ""
                     Task { await store.sendChat(text) }
                 } label: {
-                    Image(systemName: "paperplane.fill")
+                    Image(systemName: "paperplane.fill").font(.title3)
                 }
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -183,15 +226,12 @@ struct ChatThreadView: View {
         HStack {
             if message.incoming { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 3) {
-                Text(message.message ?? "")
-                    .font(.subheadline)
-                Text(message.timestamp ?? "")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Text(message.message ?? "").font(.subheadline)
+                Text(message.timestamp ?? "").font(.caption2).foregroundStyle(.secondary)
             }
-            .padding(9)
-            .background(message.incoming ? Color.secondary.opacity(0.15) : Color.accentColor.opacity(0.22))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(10)
+            .background(message.incoming ? Color.secondary.opacity(0.14) : Theme.accentSoft)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             if !message.incoming { Spacer(minLength: 40) }
         }
     }
@@ -201,19 +241,31 @@ struct RoomThreadView: View {
     @EnvironmentObject private var store: AppStore
     let room: String
     @State private var draft = ""
+    @State private var members: [String] = []
+    @State private var showMembers = false
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 6) {
-                    ForEach(store.roomThread) { message in
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(message.username ?? "?").font(.caption).bold()
-                            Text(message.message ?? "").font(.subheadline)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 6) {
+                        ForEach(store.roomThread) { message in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(message.username ?? "?")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Theme.accent)
+                                Text(message.message ?? "").font(.subheadline)
+                            }
+                            .id(message.id)
                         }
                     }
+                    .padding()
                 }
-                .padding()
+                .onChange(of: store.roomThread.count) { _, _ in
+                    if let last = store.roomThread.last {
+                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
+                }
             }
             Divider()
             HStack(spacing: 8) {
@@ -224,7 +276,7 @@ struct RoomThreadView: View {
                     draft = ""
                     Task { await store.sendRoom(text) }
                 } label: {
-                    Image(systemName: "paperplane.fill")
+                    Image(systemName: "paperplane.fill").font(.title3)
                 }
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -232,6 +284,33 @@ struct RoomThreadView: View {
         }
         .navigationTitle(room)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        members = await store.roomMembers(room)
+                        showMembers = true
+                    }
+                } label: {
+                    Image(systemName: "person.2")
+                }
+            }
+        }
+        .sheet(isPresented: $showMembers) {
+            NavigationStack {
+                List(members, id: \.self) { member in
+                    Text(member).font(.subheadline)
+                }
+                .navigationTitle("\(members.count) na sala")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Fechar") { showMembers = false }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .task {
             await store.openRoom(room)
             while !Task.isCancelled {

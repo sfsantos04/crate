@@ -2,34 +2,24 @@ import SwiftUI
 
 struct TransfersView: View {
     @EnvironmentObject private var store: AppStore
+    @State private var mode = 0
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    LabeledContent("Baixando", value: "\(store.activeDownloads.count)")
-                    LabeledContent("Velocidade", value: Fmt.speed(store.totalSpeed))
-                    LabeledContent("Concluídos", value: "\(store.finishedDownloads.count)")
+                    Picker("Modo", selection: $mode) {
+                        Text("Baixando").tag(0)
+                        Text("Enviando").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
                 }
 
-                if store.downloads.isEmpty {
-                    Section {
-                        ContentUnavailableView(
-                            "Nenhuma transferência",
-                            systemImage: "arrow.down.circle",
-                            description: Text("Busque alguma coisa e mande baixar. A transferência roda no servidor, não no telefone.")
-                        )
-                    }
+                if mode == 0 {
+                    downloadsContent
                 } else {
-                    ForEach(store.downloads) { user in
-                        Section(user.username ?? "peer") {
-                            ForEach(user.directories ?? []) { directory in
-                                ForEach(directory.files ?? []) { file in
-                                    row(file)
-                                }
-                            }
-                        }
-                    }
+                    uploadsContent
                 }
 
                 if let message = store.errorMessage {
@@ -44,7 +34,7 @@ struct TransfersView: View {
             .task { await store.loadPositions() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Limpar concluídas") {
+                    Button("Limpar") {
                         Task { await store.clearCompleted() }
                     }
                     .font(.caption)
@@ -53,22 +43,90 @@ struct TransfersView: View {
         }
     }
 
+    // MARK: Downloads
+
     @ViewBuilder
-    private func row(_ file: TransferFile) -> some View {
+    private var downloadsContent: some View {
+        Section {
+            HStack {
+                StatTile(label: "ativos", value: "\(store.activeDownloads.count)")
+                StatTile(label: "velocidade", value: Fmt.speed(store.totalSpeed), tint: Theme.ok)
+                StatTile(label: "concluídos", value: "\(store.finishedDownloads.count)",
+                         tint: .white.opacity(0.9))
+            }
+            .padding(12)
+            .background(Theme.hero)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            .listRowBackground(Color.clear)
+        }
+
+        if store.downloads.isEmpty {
+            Section {
+                EmptyState(title: "Nenhuma transferência",
+                           systemImage: "arrow.down.circle",
+                           detail: "Busque algo e mande baixar. A transferência roda no servidor, não no telefone.")
+                    .listRowBackground(Color.clear)
+            }
+        } else {
+            ForEach(store.downloads) { user in
+                Section {
+                    ForEach(user.directories ?? []) { directory in
+                        ForEach(directory.files ?? []) { file in
+                            row(file, uploading: false)
+                        }
+                    }
+                } header: {
+                    SectionLabel(text: user.username ?? "peer")
+                }
+            }
+        }
+    }
+
+    // MARK: Uploads
+
+    @ViewBuilder
+    private var uploadsContent: some View {
+        if store.uploads.isEmpty {
+            Section {
+                EmptyState(title: "Ninguém baixando de você",
+                           systemImage: "arrow.up.circle",
+                           detail: "Os uploads que os peers puxam do teu compartilhamento aparecem aqui.")
+                    .listRowBackground(Color.clear)
+            }
+        } else {
+            ForEach(store.uploads) { user in
+                Section {
+                    ForEach(user.directories ?? []) { directory in
+                        ForEach(directory.files ?? []) { file in
+                            row(file, uploading: true)
+                        }
+                    }
+                } header: {
+                    SectionLabel(text: user.username ?? "peer")
+                }
+            }
+        }
+    }
+
+    // MARK: Linha
+
+    @ViewBuilder
+    private func row(_ file: TransferFile, uploading: Bool) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(file.displayNameLabel).font(.subheadline).lineLimit(2)
             ProgressView(value: file.progress)
-                .tint(file.isFailed ? .red : (file.isFinished ? .green : .accentColor))
+                .tint(file.isFailed ? Theme.danger : (file.isFinished ? Theme.ok : Theme.accent))
             HStack(spacing: 10) {
                 Text(Fmt.stateLabel(file.state)).font(.caption2).foregroundStyle(.secondary)
                 Text(Fmt.speed(file.averageSpeed)).font(.caption2).foregroundStyle(.secondary)
                 Text("\(Int(file.progress * 100))%").font(.caption2).foregroundStyle(.secondary)
                 Text(Fmt.bytes(file.size)).font(.caption2).foregroundStyle(.tertiary)
-                if let position = store.positions[file.id], !file.isFinished {
-                    Text("fila #\(position)").font(.caption2).foregroundStyle(.orange)
+                if !uploading, let position = store.positions[file.id], !file.isFinished {
+                    Text("fila #\(position)").font(.caption2).foregroundStyle(Theme.warn)
                 }
                 Spacer()
-                if !file.isFinished {
+                if !file.isFinished && !uploading {
                     Text(Fmt.eta(file)).font(.caption2).foregroundStyle(.tertiary)
                 }
             }
@@ -77,12 +135,18 @@ struct TransfersView: View {
         .swipeActions {
             if !file.isFinished {
                 Button(role: .destructive) {
-                    Task { await store.cancel(file: file) }
+                    Task {
+                        if uploading {
+                            await store.cancelUpload(file)
+                        } else {
+                            await store.cancel(file: file)
+                        }
+                    }
                 } label: {
                     Label("Cancelar", systemImage: "xmark")
                 }
             }
-            if file.isFailed {
+            if file.isFailed && !uploading {
                 Button {
                     Task { await store.retry(file) }
                 } label: {

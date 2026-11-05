@@ -125,6 +125,10 @@ extension AppStore {
         }
     }
 
+    func roomMembers(_ name: String) async -> [String] {
+        (try? await client.roomUsers(name)) ?? []
+    }
+
     // MARK: Browse
 
     func browse(_ peer: String) async {
@@ -192,6 +196,16 @@ extension AppStore {
         guard let name = file.filename, let peer = file.username else { return }
         do {
             try await client.enqueue(username: peer, files: [(filename: name, size: file.size ?? 0)])
+            await refresh()
+        } catch {
+            errorMessage = describe(error)
+        }
+    }
+
+    func cancelUpload(_ file: TransferFile) async {
+        guard let id = file.transferID, let user = file.username else { return }
+        do {
+            try await client.cancelUpload(username: user, id: id)
             await refresh()
         } catch {
             errorMessage = describe(error)

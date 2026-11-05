@@ -6,6 +6,18 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             List {
+                HeroCard("Sonda", subtitle: store.snapshot?.version) {
+                    HStack(spacing: 14) {
+                        StatTile(label: "baixando", value: "\(store.activeDownloads.count)")
+                        StatTile(label: "velocidade", value: Fmt.speed(store.totalSpeed), tint: Theme.ok)
+                        StatTile(label: "enviando",
+                                 value: "\(store.uploads.flatMap { $0.files }.count)",
+                                 tint: .white.opacity(0.9))
+                        StatTile(label: "fila", value: "\(store.positions.count)",
+                                 tint: Theme.warn)
+                    }
+                }
+
                 Section("Servidor") {
                     if let server = store.server {
                         HStack {
