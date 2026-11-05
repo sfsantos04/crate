@@ -128,7 +128,10 @@ struct SearchView: View {
     }
 
     private var filteredPeers: [SearchResponse] {
-        let peers = store.search?.responses ?? []
+        let blocked = Set(store.ignoredUsers.map { $0.lowercased() })
+        let peers = (store.search?.responses ?? []).filter { peer in
+            !blocked.contains((peer.username ?? "").lowercased())
+        }
         let minSize = Int64(filters.minSizeMB) * 1_048_576
         return peers.compactMap { peer -> SearchResponse? in
             var copy = peer
