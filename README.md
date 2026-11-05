@@ -46,10 +46,10 @@ no aparelho (conta grátis: 7 dias, 3 apps).
 tem os tipos que os modelos Swift decodificam. Rode antes de compilar:
 
 ```
-python3 tools/conformance.py --host http://192.168.1.43:5030 --user <usuario> --password <senha>
+python3 tools/conformance.py --host http://SEU_HOST:5030 --user <usuario> --password <senha>
 ```
 
-Resultado da última execução contra slskd 0.26.2: **64/64 verificações passaram**.
+Resultado da última execução contra slskd 0.26.2: **65/65 verificações passaram**.
 
 ## Estrutura
 

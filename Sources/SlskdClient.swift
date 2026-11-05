@@ -9,7 +9,7 @@ enum SlskdError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .badHost:
-            return "Endereço inválido. Use host:porta, por exemplo 192.168.1.43:5030."
+            return "Endereço inválido. Use host:porta, por exemplo 10.0.0.10:5030."
         case .unauthorized:
             return "Usuário ou senha recusados pelo slskd."
         case .http(let code, let body):

@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class AppStore: ObservableObject {
     // Sessão
-    @Published var host: String = UserDefaults.standard.string(forKey: "host") ?? "192.168.1.43:5030"
+    @Published var host: String = UserDefaults.standard.string(forKey: "host") ?? ""
     @Published var username: String = UserDefaults.standard.string(forKey: "username") ?? ""
     @Published var isSignedIn = false
     @Published var busy = false

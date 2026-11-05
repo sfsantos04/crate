@@ -3,7 +3,7 @@
 o app Sonda decodifica. Roda contra um slskd real; não imprime segredos.
 
 Uso:
-    python3 tools/conformance.py --host http://192.168.1.43:5030 \
+    python3 tools/conformance.py --host http://SEU_HOST:5030 \
         --user "$SLSKD_USER" --password "$SLSKD_PASS"
 """
 import argparse

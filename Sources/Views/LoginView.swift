@@ -11,7 +11,7 @@ struct LoginView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("192.168.1.43:5030", text: $host)
+                    TextField("host:porta do slskd", text: $host)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
