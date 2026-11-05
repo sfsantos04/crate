@@ -5,11 +5,21 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   ipa:
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - name: Mostrar toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          sw_vers
 
       - name: XcodeGen
         run: brew install xcodegen
@@ -19,6 +29,7 @@ jobs:
 
       - name: Compilar (sem assinatura)
         run: |
+          set -euo pipefail
           xcodebuild \
             -project Sonda.xcodeproj \
             -scheme Sonda \
@@ -26,23 +37,40 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            -resultBundlePath "$RUNNER_TEMP/Sonda.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: Empacotar IPA
         run: |
+          set -euo pipefail
           mkdir -p out/Payload
           cp -R build/Build/Products/Release-iphoneos/Sonda.app out/Payload/
           cd out
           zip -qry ../Sonda-unsigned.ipa Payload
           cd ..
-          ls -l Sonda-unsigned.ipa
-          shasum -a 256 Sonda-unsigned.ipa
+          ls -lh Sonda-unsigned.ipa
+          shasum -a 256 Sonda-unsigned.ipa | tee Sonda-unsigned.ipa.sha256
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload do IPA
+        uses: actions/upload-artifact@v4
         with:
           name: Sonda-unsigned-ipa
-          path: Sonda-unsigned.ipa
+          path: |
+            Sonda-unsigned.ipa
+            Sonda-unsigned.ipa.sha256
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload do log (só em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonda-build-logs
+          path: |
+            ${{ runner.temp }}/build.log
+            ${{ runner.temp }}/Sonda.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
