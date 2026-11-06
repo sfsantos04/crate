@@ -4,6 +4,9 @@ struct ListsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var buddyDraft = ""
     @State private var ignoredDraft = ""
+    @State private var groupDraft = ""
+    @State private var newGroupDraft = ""
+    @State private var banDraft = ""
 
     var body: some View {
         List {
@@ -74,8 +77,108 @@ struct ListsView: View {
             } footer: {
                 Text("Lista local do fork: o protocolo do Soulseek não tem ignore, então ela vale para este app e para as telas que filtrarem por ela.")
             }
+        Section {
+            ForEach(Array(store.groups.keys).sorted(), id: \.self) { group in
+                DisclosureGroup {
+                    ForEach(store.groups[group] ?? [], id: \.self) { member in
+                        HStack {
+                            Text(member).font(.caption)
+                            Spacer()
+                            Button {
+                                Task { await store.removeGroupMember(group, member) }
+                            } label: {
+                                Image(systemName: "minus.circle").foregroundStyle(Theme.danger)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                    HStack {
+                        TextField("adicionar ao grupo", text: $groupDraft)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button {
+                            let value = groupDraft
+                            groupDraft = ""
+                            Task { await store.addGroupMember(group, value) }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .disabled(groupDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } label: {
+                    HStack {
+                        Text(group).font(.subheadline)
+                        Spacer()
+                        Text("\((store.groups[group] ?? []).count)").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        Task { await store.deleteGroup(group) }
+                    } label: {
+                        Label("Apagar", systemImage: "trash")
+                    }
+                }
+            }
+            HStack {
+                TextField("novo grupo", text: $newGroupDraft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button {
+                    let value = newGroupDraft
+                    newGroupDraft = ""
+                    Task { await store.createGroup(value) }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(newGroupDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        } header: {
+            SectionLabel(text: "Grupos")
+        } footer: {
+            Text("Grupos servem para organizar quem você acompanha e, no futuro, para permissões de upload por grupo.")
         }
-        .task { await store.loadLists() }
+
+        Section {
+            if store.bannedUsers.isEmpty {
+                Text("Ninguém banido.").font(.footnote).foregroundStyle(.secondary)
+            }
+            ForEach(store.bannedUsers, id: \.self) { name in
+                HStack {
+                    Text(name).font(.subheadline)
+                    Spacer()
+                    Button {
+                        Task { await store.unban(name) }
+                    } label: {
+                        Image(systemName: "minus.circle").foregroundStyle(Theme.danger)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            HStack {
+                TextField("banir usuário", text: $banDraft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button {
+                    let value = banDraft
+                    banDraft = ""
+                    Task { await store.ban(value) }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(banDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        } header: {
+            SectionLabel(text: "Banidos")
+        } footer: {
+            Text("Lista local do fork. O protocolo do Soulseek não tem ban; a recusa acontece no seu cliente.")
+        }
+        }
+        .task {
+            await store.loadLists()
+            await store.loadGroups()
+            await store.loadBanned()
+        }
         .refreshable { await store.loadLists() }
     }
 

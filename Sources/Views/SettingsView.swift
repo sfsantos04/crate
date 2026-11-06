@@ -37,6 +37,11 @@ struct SettingsView: View {
                         } label: {
                             Label("Wishlist", systemImage: "bookmark")
                         }
+                        NavigationLink {
+                            ActivityView()
+                        } label: {
+                            Label("Atividade", systemImage: "clock.arrow.circlepath")
+                        }
                     }
                 }
 

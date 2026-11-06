@@ -11,6 +11,7 @@ struct TransferSettingsView: View {
     @State private var downloadKB = 2048.0
     @State private var busy = false
     @State private var loaded = false
+    @State private var listenPort = 0
 
     var body: some View {
         Form {
@@ -44,6 +45,20 @@ struct TransferSettingsView: View {
                 }
             } header: {
                 SectionLabel(text: "Velocidade de download")
+            }
+
+            Section {
+                TextField("porta de escuta", value: $listenPort, format: .number)
+                    .keyboardType(.numberPad)
+                Button {
+                    applyPort()
+                } label: {
+                    Label("Aplicar porta", systemImage: "network")
+                }
+            } header: {
+                SectionLabel(text: "Porta")
+            } footer: {
+                Text("Porta em que outros clientes conectam para baixar de você. Mudar exige que ela esteja liberada no roteador.")
             }
 
             Section {
@@ -81,7 +96,24 @@ struct TransferSettingsView: View {
                 downloadKB = Double(settings.downloadSpeedLimit) / 1024
             }
         }
+        listenPort = (try? await store.client.listenPort()) ?? 0
         loaded = true
+    }
+
+    private func applyPort() {
+        guard listenPort > 1023 && listenPort < 65536 else {
+            store.flash("Porta inválida")
+            return
+        }
+        Task {
+            do {
+                try await store.client.setListenPort(listenPort)
+                store.flash("Porta aplicada: \(listenPort)")
+            } catch {
+                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                store.flash("Falhou: \(message)")
+            }
+        }
     }
 
     private func save() {

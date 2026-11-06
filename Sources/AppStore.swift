@@ -63,6 +63,11 @@ final class AppStore: ObservableObject {
     @Published var heldTransfers = 0
     @Published var roomTickers: [(username: String, message: String)] = []
     @Published var ownPrivilegeDays = 0
+    @Published var groups: [String: [String]] = [:]
+    @Published var bannedUsers: [String] = []
+    @Published var receivedSearches: [SlskdClient.ActivityItem] = []
+    @Published var chatLog: [SlskdClient.ActivityItem] = []
+    @Published var deniedLog: [SlskdClient.ActivityItem] = []
 
     let realtime = RealtimeClient()
 
