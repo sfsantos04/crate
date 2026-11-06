@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SearchFilters: Equatable {
+struct SearchFilters: Equatable, Codable {
     var minBitrate = 0
     var minSizeMB = 0
     var freeSlotOnly = false
@@ -10,7 +10,7 @@ struct SearchFilters: Equatable {
     var sortMode = SortMode.relevance
     var blockedWords: [String] = []
 
-    enum SortMode: Int, CaseIterable, Identifiable {
+    enum SortMode: Int, CaseIterable, Identifiable, Codable {
         case relevance = 0
         case size = 1
         case bitrate = 2
@@ -330,11 +330,54 @@ struct FolderGroup: Identifiable {
 struct FiltersSheet: View {
     @Binding var filters: SearchFilters
     @State private var blockedDraft = ""
+    @State private var presets: [FilterPreset] = FilterPresetStore.load()
+    @State private var presetName = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    if presets.isEmpty {
+                        Text("Nenhum filtro salvo ainda.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    ForEach(presets) { preset in
+                        Button {
+                            filters = preset.filters
+                        } label: {
+                            HStack {
+                                Text(preset.name).font(.subheadline)
+                                Spacer()
+                                Image(systemName: "arrow.down.left.circle").foregroundStyle(Theme.accent)
+                            }
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                presets.removeAll { $0.name == preset.name }
+                                FilterPresetStore.save(presets)
+                            } label: {
+                                Label("Apagar", systemImage: "trash")
+                            }
+                        }
+                    }
+                    HStack {
+                        TextField("nome do filtro", text: $presetName)
+                        Button("Salvar") {
+                            let name = presetName.trimmingCharacters(in: .whitespaces)
+                            guard !name.isEmpty else { return }
+                            presets.removeAll { $0.name == name }
+                            presets.append(FilterPreset(name: name, filters: filters))
+                            FilterPresetStore.save(presets)
+                            presetName = ""
+                        }
+                        .disabled(presetName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } header: {
+                    SectionLabel(text: "Filtros salvos")
+                } footer: {
+                    Text("Toque em um nome para aplicar o conjunto inteiro. Arraste para a esquerda para apagar.")
+                }
+
                 Section("Qualidade mínima") {
                     Stepper("Bitrate ≥ \(filters.minBitrate) kbps",
                             value: $filters.minBitrate, in: 0...320, step: 32)
