@@ -5,9 +5,30 @@ struct SearchFilters: Equatable {
     var minSizeMB = 0
     var freeSlotOnly = false
     var onlyUnlocked = false
+    var dedupeRepeated = true
+    var maxResults = 500
+    var sortMode = SortMode.relevance
+
+    enum SortMode: Int, CaseIterable, Identifiable {
+        case relevance = 0
+        case size = 1
+        case bitrate = 2
+        case speed = 3
+
+        var id: Int { rawValue }
+
+        var label: String {
+            switch self {
+            case .relevance: return "Relevância"
+            case .size: return "Tamanho"
+            case .bitrate: return "Bitrate"
+            case .speed: return "Velocidade"
+            }
+        }
+    }
 
     var isActive: Bool {
-        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked
+        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 500 || sortMode != .relevance
     }
 
     var summary: String {
@@ -16,6 +37,9 @@ struct SearchFilters: Equatable {
         if minSizeMB > 0 { parts.append("≥\(minSizeMB)MB") }
         if freeSlotOnly { parts.append("slot livre") }
         if onlyUnlocked { parts.append("sem trava") }
+        if !dedupeRepeated { parts.append("com repetidos") }
+        if maxResults != 500 { parts.append("máx \(maxResults)") }
+        if sortMode != .relevance { parts.append(sortMode.label.lowercased()) }
         return parts.isEmpty ? "Filtros" : parts.joined(separator: " · ")
     }
 }
@@ -144,21 +168,54 @@ struct SearchView: View {
             !blocked.contains((peer.username ?? "").lowercased())
         }
         let minSize = Int64(filters.minSizeMB) * 1_048_576
-        return peers.compactMap { peer -> SearchResponse? in
+        var seen = Set<String>()
+        var budget = max(1, filters.maxResults)
+
+        let filtered = peers.compactMap { peer -> SearchResponse? in
             var copy = peer
             copy.files = (peer.files ?? []).filter { file in
-                (file.size ?? 0) >= minSize
-                    && (file.bitRate ?? 0) >= filters.minBitrate
-                    && (!filters.freeSlotOnly || (peer.hasFreeUploadSlot ?? false))
-                    && (!filters.onlyUnlocked || !(file.isLocked ?? false))
+                guard (file.size ?? 0) >= minSize,
+                      (file.bitRate ?? 0) >= filters.minBitrate,
+                      !filters.freeSlotOnly || (peer.hasFreeUploadSlot ?? false),
+                      !filters.onlyUnlocked || !(file.isLocked ?? false)
+                else { return false }
+
+                guard filters.dedupeRepeated, budget > 0 else { return true }
+
+                // mesmo arquivo vindo de vários peers: fica o primeiro, que já é o melhor
+                let key = "\((file.filename ?? "").lowercased())|\(file.size ?? 0)"
+                if seen.contains(key) { return false }
+                seen.insert(key)
+                budget -= 1
+                return true
             }
+
+            switch filters.sortMode {
+            case .size:
+                copy.files = copy.files?.sorted { ($0.size ?? 0) > ($1.size ?? 0) }
+            case .bitrate:
+                copy.files = copy.files?.sorted { ($0.bitRate ?? 0) > ($1.bitRate ?? 0) }
+            default:
+                break
+            }
+
             return (copy.files?.isEmpty ?? true) ? nil : copy
         }
-        .sorted { lhs, rhs in
-            let l = lhs.hasFreeUploadSlot ?? false
-            let r = rhs.hasFreeUploadSlot ?? false
-            if l != r { return l && !r }
-            return (lhs.uploadSpeed ?? 0) > (rhs.uploadSpeed ?? 0)
+
+        return filtered.sorted { lhs, rhs in
+            switch filters.sortMode {
+            case .speed:
+                return (lhs.uploadSpeed ?? 0) > (rhs.uploadSpeed ?? 0)
+            case .size:
+                let l = (lhs.files ?? []).reduce(Int64(0)) { $0 + ($1.size ?? 0) }
+                let r = (rhs.files ?? []).reduce(Int64(0)) { $0 + ($1.size ?? 0) }
+                return l > r
+            default:
+                let l = lhs.hasFreeUploadSlot ?? false
+                let r = rhs.hasFreeUploadSlot ?? false
+                if l != r { return l && !r }
+                return (lhs.uploadSpeed ?? 0) > (rhs.uploadSpeed ?? 0)
+            }
         }
     }
 
@@ -263,6 +320,14 @@ struct FiltersSheet: View {
                 Section("Disponibilidade") {
                     Toggle("Somente slot livre", isOn: $filters.freeSlotOnly)
                     Toggle("Somente arquivos sem trava", isOn: $filters.onlyUnlocked)
+                    Toggle("Descartar resultados repetidos", isOn: $filters.dedupeRepeated)
+                    Stepper("Máximo de resultados: \(filters.maxResults)",
+                            value: $filters.maxResults, in: 50...2000, step: 50)
+                    Picker("Ordenar por", selection: $filters.sortMode) {
+                        ForEach(SearchFilters.SortMode.allCases) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
                 }
             }
             .navigationTitle("Filtros")
