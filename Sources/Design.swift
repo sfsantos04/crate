@@ -1,21 +1,94 @@
 import SwiftUI
 
-/// Tokens visuais do Sonda: um só lugar para cor, tipografia e superfícies.
+/// Paleta de um tema. Cada estilo tem versão clara e escura.
+struct ThemePalette {
+    let heroTop: Color
+    let heroBottom: Color
+    let accent: Color
+    let ok: Color
+    let warn: Color
+    let danger: Color
+}
+
+/// Tokens visuais do Sonda: o tema atual decide as cores, o resto do app não muda.
 enum Theme {
-    static let ink = Color(red: 0.05, green: 0.08, blue: 0.15)
-    static let deep = Color(red: 0.07, green: 0.16, blue: 0.31)
-    static let accent = Color(red: 0.357, green: 0.906, blue: 1.000)
-    static let accentSoft = Color(red: 0.357, green: 0.906, blue: 1.000).opacity(0.16)
-    static let ok = Color(red: 0.29, green: 0.85, blue: 0.55)
-    static let warn = Color(red: 1.00, green: 0.75, blue: 0.31)
-    static let danger = Color(red: 1.00, green: 0.42, blue: 0.42)
+    static var current: ThemePalette = Palettes.sonda(.dark)
+
+    static var ink: Color { current.heroBottom }
+    static var deep: Color { current.heroTop }
+    static var accent: Color { current.accent }
+    static var accentSoft: Color { current.accent.opacity(0.16) }
+    static var ok: Color { current.ok }
+    static var warn: Color { current.warn }
+    static var danger: Color { current.danger }
 
     static var hero: LinearGradient {
-        LinearGradient(colors: [deep, ink], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [current.heroTop, current.heroBottom],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     static var markGradient: LinearGradient {
-        LinearGradient(colors: [accent, .white], startPoint: .top, endPoint: .bottom)
+        LinearGradient(colors: [current.accent, .white], startPoint: .top, endPoint: .bottom)
+    }
+}
+
+/// Estilos disponíveis, com as cores de cada um em claro e escuro.
+enum Palettes {
+    static func sonda(_ appearance: ThemeAppearance) -> ThemePalette {
+        switch appearance {
+        case .light:
+            return ThemePalette(heroTop: Color(red: 0.13, green: 0.33, blue: 0.55),
+                                heroBottom: Color(red: 0.06, green: 0.12, blue: 0.22),
+                                accent: Color(red: 0.05, green: 0.55, blue: 0.78),
+                                ok: Color(red: 0.10, green: 0.62, blue: 0.38),
+                                warn: Color(red: 0.85, green: 0.55, blue: 0.10),
+                                danger: Color(red: 0.82, green: 0.22, blue: 0.22))
+        default:
+            return ThemePalette(heroTop: Color(red: 0.07, green: 0.16, blue: 0.31),
+                                heroBottom: Color(red: 0.05, green: 0.08, blue: 0.15),
+                                accent: Color(red: 0.357, green: 0.906, blue: 1.000),
+                                ok: Color(red: 0.29, green: 0.85, blue: 0.55),
+                                warn: Color(red: 1.00, green: 0.75, blue: 0.31),
+                                danger: Color(red: 1.00, green: 0.42, blue: 0.42))
+        }
+    }
+
+    static func soulseek(_ appearance: ThemeAppearance) -> ThemePalette {
+        switch appearance {
+        case .light:
+            return ThemePalette(heroTop: Color(red: 0.16, green: 0.26, blue: 0.52),
+                                heroBottom: Color(red: 0.07, green: 0.13, blue: 0.30),
+                                accent: Color(red: 0.09, green: 0.32, blue: 0.63),
+                                ok: Color(red: 0.16, green: 0.55, blue: 0.24),
+                                warn: Color(red: 0.79, green: 0.50, blue: 0.05),
+                                danger: Color(red: 0.72, green: 0.13, blue: 0.13))
+        default:
+            return ThemePalette(heroTop: Color(red: 0.14, green: 0.22, blue: 0.44),
+                                heroBottom: Color(red: 0.05, green: 0.09, blue: 0.20),
+                                accent: Color(red: 0.45, green: 0.66, blue: 0.94),
+                                ok: Color(red: 0.36, green: 0.78, blue: 0.45),
+                                warn: Color(red: 0.95, green: 0.72, blue: 0.30),
+                                danger: Color(red: 0.93, green: 0.40, blue: 0.40))
+        }
+    }
+
+    static func nicotine(_ appearance: ThemeAppearance) -> ThemePalette {
+        switch appearance {
+        case .light:
+            return ThemePalette(heroTop: Color(red: 0.30, green: 0.26, blue: 0.60),
+                                heroBottom: Color(red: 0.14, green: 0.11, blue: 0.32),
+                                accent: Color(red: 0.36, green: 0.29, blue: 0.78),
+                                ok: Color(red: 0.13, green: 0.60, blue: 0.45),
+                                warn: Color(red: 0.84, green: 0.52, blue: 0.12),
+                                danger: Color(red: 0.80, green: 0.20, blue: 0.33))
+        default:
+            return ThemePalette(heroTop: Color(red: 0.20, green: 0.18, blue: 0.42),
+                                heroBottom: Color(red: 0.09, green: 0.08, blue: 0.20),
+                                accent: Color(red: 0.62, green: 0.55, blue: 0.98),
+                                ok: Color(red: 0.38, green: 0.82, blue: 0.62),
+                                warn: Color(red: 0.98, green: 0.72, blue: 0.36),
+                                danger: Color(red: 0.96, green: 0.42, blue: 0.55))
+        }
     }
 }
 

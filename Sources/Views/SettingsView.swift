@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var appearance: AppearanceStore
     @State private var hostDraft = ""
     @State private var password = ""
     @State private var message: String?
@@ -9,6 +10,26 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Aparência") {
+                    Picker("Estilo", selection: Binding(
+                        get: { appearance.style },
+                        set: { appearance.set(style: $0) }
+                    )) {
+                        ForEach(ThemeStyle.allCases) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
+                    Picker("Modo", selection: Binding(
+                        get: { appearance.appearance },
+                        set: { appearance.set(appearance: $0) }
+                    )) {
+                        ForEach(ThemeAppearance.allCases) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
                 Section("Conexão") {
                     TextField("host:porta", text: $hostDraft)
                         .textInputAutocapitalization(.never)

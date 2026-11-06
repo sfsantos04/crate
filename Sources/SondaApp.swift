@@ -4,11 +4,16 @@ import SwiftUI
 struct SondaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = AppStore.shared
+    @StateObject private var appearance = AppearanceStore.shared
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(store)
+                .environmentObject(appearance)
+                .tint(Theme.accent)
+                .preferredColorScheme(appearance.appearance.colorScheme)
+                .id(appearance.revision)
                 .task { await store.bootstrap() }
         }
     }
