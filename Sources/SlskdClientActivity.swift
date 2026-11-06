@@ -85,6 +85,31 @@ extension SlskdClient {
         })
     }
 
+    // MARK: Shares e uploads (edição de config com backup)
+
+    func configShares() async throws -> (directories: [String], filters: [String]) {
+        let data = try await send("/api/v0/config/shares")
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return ((object["directories"] as? [String]) ?? [], (object["filters"] as? [String]) ?? [])
+    }
+
+    func applyConfigShares(directories: [String], filters: [String]) async throws -> String {
+        let body = try JSONSerialization.data(withJSONObject: ["directories": directories, "filters": filters])
+        let data = try await send("/api/v0/config/shares", method: "PUT", body: body)
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return (object["backup"] as? String) ?? "sem backup informado"
+    }
+
+    func uploadsEnabled() async throws -> Bool {
+        let data = try await send("/api/v0/config/uploads")
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return (object["uploadsEnabled"] as? Bool) ?? true
+    }
+
+    func setUploads(enabled: Bool) async throws {
+        _ = try await send("/api/v0/config/uploads?enabled=\(enabled)", method: "POST")
+    }
+
     // MARK: Porta de escuta
 
     func listenPort() async throws -> Int? {

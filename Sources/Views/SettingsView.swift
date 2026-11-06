@@ -42,6 +42,11 @@ struct SettingsView: View {
                         } label: {
                             Label("Atividade", systemImage: "clock.arrow.circlepath")
                         }
+                        NavigationLink {
+                            SharedFoldersView()
+                        } label: {
+                            Label("Pastas compartilhadas", systemImage: "folder.badge.gearshape")
+                        }
                     }
                 }
 

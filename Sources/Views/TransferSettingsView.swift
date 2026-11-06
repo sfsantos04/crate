@@ -12,10 +12,18 @@ struct TransferSettingsView: View {
     @State private var busy = false
     @State private var loaded = false
     @State private var listenPort = 0
+    @State private var uploadsEnabled = true
 
     var body: some View {
         Form {
             Section {
+                Toggle("Aceitar uploads", isOn: $uploadsEnabled)
+                    .onChange(of: uploadsEnabled) { _, value in
+                        Task {
+                            try? await store.client.setUploads(enabled: value)
+                            store.flash(value ? "Uploads aceitos" : "Uploads recusados")
+                        }
+                    }
                 Stepper("Slots de upload: \(uploadSlots)", value: $uploadSlots, in: 1...50)
             } header: {
                 SectionLabel(text: "Upload")
@@ -97,6 +105,7 @@ struct TransferSettingsView: View {
             }
         }
         listenPort = (try? await store.client.listenPort()) ?? 0
+        uploadsEnabled = (try? await store.client.uploadsEnabled()) ?? true
         loaded = true
     }
 
