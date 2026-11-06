@@ -3,6 +3,7 @@ import SwiftUI
 struct TransfersView: View {
     @EnvironmentObject private var store: AppStore
     @State private var mode = 0
+    @State private var filter = TransferFilter.all
     @State private var selected: TransferFile?
     @State private var confirmClear = false
 
@@ -13,6 +14,14 @@ struct TransfersView: View {
                     Picker("Modo", selection: $mode) {
                         Text("Baixando").tag(0)
                         Text("Enviando").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+
+                    Picker("Filtro", selection: $filter) {
+                        ForEach(TransferFilter.allCases) { item in
+                            Text(item.label).tag(item)
+                        }
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
@@ -112,14 +121,15 @@ struct TransfersView: View {
             }
         } else {
             ForEach(store.downloads) { user in
-                Section {
-                    ForEach(user.directories ?? []) { directory in
-                        ForEach(directory.files ?? []) { file in
+                let files = (user.directories ?? []).flatMap { $0.files ?? [] }.filter { filter.matches($0) }
+                if !files.isEmpty {
+                    Section {
+                        ForEach(files) { file in
                             row(file, uploading: false)
                         }
+                    } header: {
+                        SectionLabel(text: user.username ?? "peer")
                     }
-                } header: {
-                    SectionLabel(text: user.username ?? "peer")
                 }
             }
         }
@@ -138,14 +148,15 @@ struct TransfersView: View {
             }
         } else {
             ForEach(store.uploads) { user in
-                Section {
-                    ForEach(user.directories ?? []) { directory in
-                        ForEach(directory.files ?? []) { file in
+                let files = (user.directories ?? []).flatMap { $0.files ?? [] }.filter { filter.matches($0) }
+                if !files.isEmpty {
+                    Section {
+                        ForEach(files) { file in
                             row(file, uploading: true)
                         }
+                    } header: {
+                        SectionLabel(text: user.username ?? "peer")
                     }
-                } header: {
-                    SectionLabel(text: user.username ?? "peer")
                 }
             }
         }

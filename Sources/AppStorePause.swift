@@ -38,8 +38,17 @@ extension AppStore {
     func openSearch(id: String) async {
         guard !id.isEmpty else { return }
         do {
-            search = try await client.search(id: id)
-            flash("Busca carregada")
+            let loaded = try await client.search(id: id)
+            search = loaded
+
+            if !loaded.complete {
+                searchTask?.cancel()
+                searching = true
+                searchTask = Task { await monitor(id: id) }
+                flash("Retomando essa busca…")
+            } else {
+                flash("Busca carregada")
+            }
         } catch {
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             flash("Falhou: \(message)")

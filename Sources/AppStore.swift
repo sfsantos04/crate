@@ -73,7 +73,7 @@ final class AppStore: ObservableObject {
 
     let client = SlskdClient()
     private var monitor: Task<Void, Never>?
-    private var searchTask: Task<Void, Never>?
+    var searchTask: Task<Void, Never>?
 
     // MARK: Ciclo de vida
 
@@ -189,32 +189,36 @@ final class AppStore: ObservableObject {
                 return
             }
             searchTask = Task { [weak self] in
-                guard let self else { return }
-                for _ in 0..<20 {
-                    if Task.isCancelled { return }
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    do {
-                        let current = try await self.client.search(id: id)
-                        await MainActor.run {
-                            self.search = current
-                            self.searchMessage = current.complete
-                                ? "\(current.fileCount ?? 0) arquivos de \(current.responseCount ?? 0) peers"
-                                : "Recebendo resultados…"
-                        }
-                        if current.complete { break }
-                    } catch {
-                        await MainActor.run {
-                            self.searchMessage = (error as? LocalizedError)?.errorDescription
-                                ?? error.localizedDescription
-                        }
-                    }
-                }
-                await MainActor.run { self.searching = false }
+                await self?.monitor(id: id)
             }
         } catch {
             searchMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             searching = false
         }
+    }
+
+    /// Acompanha uma busca enquanto ela recebe resultados, como o SoulseekQt faz.
+    /// Para quando completa, quando o usuário cancela, ou após três minutos.
+    func monitor(id: String) async {
+        for _ in 0..<90 {
+            if Task.isCancelled { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            do {
+                let current = try await client.search(id: id)
+                await MainActor.run {
+                    self.search = current
+                    self.searchMessage = current.complete
+                        ? "\(current.fileCount ?? 0) arquivos de \(current.responseCount ?? 0) peers"
+                        : "Recebendo resultados… \(current.fileCount ?? 0) arquivos"
+                }
+                if current.complete { break }
+            } catch {
+                await MainActor.run {
+                    self.searchMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                }
+            }
+        }
+        await MainActor.run { self.searching = false }
     }
 
     func clearSearch() {
