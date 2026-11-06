@@ -17,6 +17,7 @@ struct SocialView: View {
                     ListsView()
                 }
             }
+            .task { await store.loadLists() }
             .navigationTitle(mode == 0 ? "Chat" : (mode == 1 ? "Salas" : "Listas"))
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -62,7 +63,7 @@ struct SocialView: View {
                            detail: "Mensagens privadas trocadas pelo slskd aparecem aqui, com contador de não lidas.")
                     .listRowBackground(Color.clear)
             }
-            ForEach(store.conversations) { conversation in
+            ForEach(store.conversations.filter { !store.ignoredUsers.contains($0.username ?? "") }) { conversation in
                 NavigationLink {
                     ChatThreadView(peer: conversation.username ?? "")
                 } label: {
@@ -223,7 +224,7 @@ struct ChatThreadView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(store.thread) { message in
+                        ForEach(store.thread.filter { !store.ignoredUsers.contains($0.username ?? "") }) { message in
                             bubble(message).id(message.id)
                         }
                     }
@@ -291,7 +292,7 @@ struct RoomThreadView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 6) {
-                        ForEach(store.roomThread) { message in
+                        ForEach(store.roomThread.filter { !store.ignoredUsers.contains($0.username ?? "") }) { message in
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                 Text(message.username ?? "?")
                                     .font(.caption.weight(.semibold))
