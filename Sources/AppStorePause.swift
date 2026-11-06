@@ -68,6 +68,28 @@ extension AppStore {
         roomTickers = (try? await client.tickers(room: room)) ?? []
     }
 
+    func retryAllFailed() async {
+        let failed = downloads.flatMap { user in (user.directories ?? []).flatMap { $0.files ?? [] } }
+            .filter { $0.isFailed }
+        guard !failed.isEmpty else {
+            flash("Nenhuma falha para reprocessar")
+            return
+        }
+        var ok = 0
+        for file in failed {
+            if let name = file.filename, let peer = file.username {
+                do {
+                    try await client.enqueue(username: peer, files: [(filename: name, size: file.size ?? 0)])
+                    ok += 1
+                } catch {
+                    // segue para o próximo
+                }
+            }
+        }
+        flash("Reenfileirados: \(ok) de \(failed.count)")
+        await refresh()
+    }
+
     func togglePause() async {
         do {
             if queuePaused {

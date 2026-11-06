@@ -47,6 +47,7 @@ extension AppStore {
         guard !value.isEmpty else { return }
         do {
             try await client.addInterest(hated ? "hated" : "liked", value)
+            flash("\(hated ? "Não gosta" : "Gosta"): \(value)")
             await loadProfile()
         } catch {
             profileNote = describeFork(error)
@@ -63,11 +64,18 @@ extension AppStore {
     }
 
     func toggleAway() async {
+        await setAway(!isAway)
+    }
+
+    func setAway(_ away: Bool) async {
         do {
-            try await client.setStatus(away: true)
-            profileNote = "Status alterado para ausente."
+            try await client.setStatus(away: away)
+            isAway = away
+            profileNote = away ? "Status: ausente." : "Status: online."
+            flash(profileNote ?? "")
         } catch {
             profileNote = describeFork(error)
+            flash("Falhou ao mudar status")
         }
     }
 

@@ -9,10 +9,11 @@ struct ProfileView: View {
         List {
             Section {
                 LabeledContent("Privilégios", value: store.privilegesDays.map { "\($0) dias" } ?? "—")
-                Button {
-                    Task { await store.toggleAway() }
-                } label: {
-                    Label("Ficar ausente", systemImage: "moon.zzz")
+                Toggle(isOn: Binding(
+                    get: { store.isAway },
+                    set: { value in Task { await store.setAway(value) } }
+                )) {
+                    Label(store.isAway ? "Ausente" : "Disponível", systemImage: store.isAway ? "moon.zzz.fill" : "moon.zzz")
                 }
             } header: {
                 SectionLabel(text: "Conta")
@@ -46,8 +47,13 @@ struct ProfileView: View {
                             Text(item.interest ?? "?").font(.subheadline)
                             Spacer()
                             CountPill(text: "\(item.count ?? 0)", tint: Theme.ok)
-                            Button {
-                                Task { await store.addInterest(item.interest ?? "", hated: false) }
+                            Menu {
+                                Button("Gostar: \(item.interest ?? "")") {
+                                    Task { await store.addInterest(item.interest ?? "", hated: false) }
+                                }
+                                Button("Não gostar: \(item.interest ?? "")") {
+                                    Task { await store.addInterest(item.interest ?? "", hated: true) }
+                                }
                             } label: {
                                 Image(systemName: "plus.circle")
                             }
@@ -66,6 +72,20 @@ struct ProfileView: View {
                             Text(item.interest ?? "?").font(.subheadline)
                             Spacer()
                             CountPill(text: "\(item.count ?? 0)", tint: Theme.warn)
+                            Menu {
+                                Button("Gostar: \(item.interest ?? "")") {
+                                    Task { await store.addInterest(item.interest ?? "", hated: false) }
+                                }
+                                Button("Não gostar: \(item.interest ?? "")") {
+                                    Task { await store.addInterest(item.interest ?? "", hated: true) }
+                                }
+                                Button("Ver usuários similares") {
+                                    Task { await store.loadProfile() }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
+                            .buttonStyle(.borderless)
                         }
                     }
                 } header: {

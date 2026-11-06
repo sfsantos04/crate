@@ -73,6 +73,15 @@ struct TransfersView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    if mode == 0 {
+                        Button {
+                            Task { await store.retryAllFailed() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise.circle")
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Limpar") {
                         confirmClear = true
                     }
@@ -187,6 +196,26 @@ struct TransfersView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture { selected = file }
+        .contextMenu {
+            if file.isFailed && !uploading {
+                Button {
+                    Task { await store.retry(file) }
+                } label: {
+                    Label("Reprocessar", systemImage: "arrow.clockwise")
+                }
+            }
+            Button(role: .destructive) {
+                Task {
+                    if uploading {
+                        await store.cancelUpload(file)
+                    } else {
+                        await store.cancel(file: file)
+                    }
+                }
+            } label: {
+                Label("Remover", systemImage: "trash")
+            }
+        }
         .swipeActions {
             if !file.isFinished {
                 Button(role: .destructive) {

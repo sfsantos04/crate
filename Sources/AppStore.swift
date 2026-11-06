@@ -63,6 +63,7 @@ final class AppStore: ObservableObject {
     @Published var heldTransfers = 0
     @Published var roomTickers: [(username: String, message: String)] = []
     @Published var ownPrivilegeDays = 0
+    @Published var isAway = false
     @Published var groups: [String: [String]] = [:]
     @Published var bannedUsers: [String] = []
     @Published var receivedSearches: [SlskdClient.ActivityItem] = []
