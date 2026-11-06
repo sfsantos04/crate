@@ -329,6 +329,7 @@ struct FolderGroup: Identifiable {
 
 struct FiltersSheet: View {
     @Binding var filters: SearchFilters
+    @State private var blockedDraft = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -347,6 +348,11 @@ struct FiltersSheet: View {
                     Stepper("Máximo de resultados: \(filters.maxResults)",
                             value: $filters.maxResults, in: 50...2000, step: 50)
                     TextField("bloquear palavras (remix, ao vivo, cover)", text: $blockedDraft)
+                        .onAppear {
+                            if blockedDraft.isEmpty {
+                                blockedDraft = UserDefaults.standard.string(forKey: "blockedWords") ?? ""
+                            }
+                        }
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .onChange(of: blockedDraft) { _, value in
