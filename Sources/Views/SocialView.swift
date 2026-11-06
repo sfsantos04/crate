@@ -5,6 +5,9 @@ struct SocialView: View {
     @State private var mode = 0
     @State private var sortByUsers = true
     @State private var roomQuery = ""
+    @State private var showCreateRoom = false
+    @State private var newRoomName = ""
+    @State private var newRoomPrivate = false
 
     var body: some View {
         NavigationStack {
@@ -18,6 +21,26 @@ struct SocialView: View {
                 }
             }
             .task { await store.loadLists() }
+            .alert("Criar sala", isPresented: $showCreateRoom) {
+                TextField("nome da sala", text: $newRoomName)
+                Toggle("Privada", isOn: $newRoomPrivate)
+                Button("Criar") {
+                    let name = newRoomName.trimmingCharacters(in: .whitespaces)
+                    let isPrivate = newRoomPrivate
+                    Task {
+                        do {
+                            try await store.client.createRoom(name, isPrivate: isPrivate)
+                            store.flash("Sala \(name) criada")
+                            await store.loadRooms()
+                        } catch {
+                            store.flash("Falhou ao criar sala")
+                        }
+                    }
+                }
+                Button("Cancelar", role: .cancel) {}
+            } message: {
+                Text("Se a sala já existir, você apenas entra nela. Nome com até 24 caracteres ASCII.")
+            }
             .navigationTitle(mode == 0 ? "Chat" : (mode == 1 ? "Salas" : "Listas"))
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -28,6 +51,17 @@ struct SocialView: View {
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 230)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if mode == 1 {
+                        Button {
+                            newRoomName = ""
+                            newRoomPrivate = false
+                            showCreateRoom = true
+                        } label: {
+                            Image(systemName: "plus.bubble")
+                        }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

@@ -11,6 +11,8 @@ struct UserProfileView: View {
     @State private var loaded = false
     @State private var showBrowse = false
     @State private var showScopedSearch = false
+    @State private var limitConcurrent = 0
+    @State private var limitMB = 0
 
     var body: some View {
         List {
@@ -138,6 +140,28 @@ struct UserProfileView: View {
             } header: {
                 SectionLabel(text: "Ações")
             }
+
+            Section {
+                Stepper("Uploads simultâneos: \(limitConcurrent)", value: $limitConcurrent, in: 0...10)
+                Stepper("Tamanho máximo: \(limitMB == 0 ? "sem limite" : "\(limitMB) MB")",
+                        value: $limitMB, in: 0...2000, step: 50)
+                Button {
+                    Task {
+                        do {
+                            try await store.client.setUserLimit(username, concurrent: limitConcurrent, maxMB: limitMB)
+                            store.flash("Limite salvo para \(username)")
+                        } catch {
+                            store.flash("Falhou ao salvar limite")
+                        }
+                    }
+                } label: {
+                    Label("Salvar limite", systemImage: "gauge.with.needle")
+                }
+            } header: {
+                SectionLabel(text: "Limite de upload")
+            } footer: {
+                Text("Zero significa sem limite. O servidor recusa o upload acima disso antes de abrir o arquivo.")
+            }
         }
         .sheet(isPresented: $showScopedSearch) {
             ScopedSearchView(room: nil, username: username).environmentObject(store)
@@ -147,6 +171,9 @@ struct UserProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.loadLists()
+            let limit = (try? await store.client.userLimit(username)) ?? (0, 0)
+            limitConcurrent = limit.concurrent
+            limitMB = limit.maxMB
             await store.loadOwnPrivileges()
             note = await store.loadNote(for: username)
             stats = try? await store.client.statistics(of: username)

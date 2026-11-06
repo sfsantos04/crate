@@ -47,6 +47,16 @@ struct SettingsView: View {
                         } label: {
                             Label("Pastas compartilhadas", systemImage: "folder.badge.gearshape")
                         }
+                        NavigationLink {
+                            AccountView()
+                        } label: {
+                            Label("Conta", systemImage: "person.badge.key")
+                        }
+                        NavigationLink {
+                            PausedFoldersView()
+                        } label: {
+                            Label("Pastas pausadas", systemImage: "pause.rectangle")
+                        }
                     }
                 }
 
