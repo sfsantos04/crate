@@ -21,6 +21,11 @@ extension AppStore {
         }
     }
 
+    func loadRoomTickers() async {
+        guard forkMode, let room = activeRoom else { return }
+        roomTickers = (try? await client.tickers(room: room)) ?? []
+    }
+
     func togglePause() async {
         do {
             if queuePaused {

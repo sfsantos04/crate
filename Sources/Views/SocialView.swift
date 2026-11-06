@@ -197,6 +197,29 @@ struct ChatThreadView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if !store.roomTickers.isEmpty {
+                DisclosureGroup {
+                    VStack(alignment: .leading, spacing: 5) {
+                        ForEach(Array(store.roomTickers.enumerated()), id: \.offset) { _, ticker in
+                            HStack(alignment: .top, spacing: 6) {
+                                Text(ticker.username).font(.caption2.weight(.semibold)).foregroundStyle(Theme.accent)
+                                Text(ticker.message).font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "rectangle.on.rectangle").font(.caption2)
+                        Text("Mural · \(store.roomTickers.count)").font(.caption2.weight(.semibold))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                Divider()
+            }
+
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {

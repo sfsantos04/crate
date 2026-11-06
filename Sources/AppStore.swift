@@ -61,6 +61,7 @@ final class AppStore: ObservableObject {
     @Published var wishlistBusy = false
     @Published var queuePaused = false
     @Published var heldTransfers = 0
+    @Published var roomTickers: [(username: String, message: String)] = []
 
     let realtime = RealtimeClient()
 

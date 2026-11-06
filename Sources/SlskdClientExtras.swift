@@ -63,6 +63,19 @@ extension SlskdClient {
         return try decode(InterestPair.self, from: data)
     }
 
+    // MARK: Tickers (mural da sala)
+
+    func tickers(room: String) async throws -> [(username: String, message: String)] {
+        let data = try await send("/api/v0/rooms/\(seg(room))/tickers")
+        guard let list = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+        return list.compactMap { item in
+            guard let user = item["username"] as? String else { return nil }
+            return (user, (item["message"] as? String) ?? "")
+        }
+    }
+
     // MARK: Busca com escopo
 
     func searchRoom(_ room: String, text: String) async throws -> String {
