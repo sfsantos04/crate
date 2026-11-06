@@ -282,6 +282,8 @@ struct ChatThreadView: View {
 
 struct RoomThreadView: View {
     @AppStorage("blockedWords") private var blockedRaw = ""
+    @State private var showTicker = false
+    @State private var tickerDraft = ""
     @EnvironmentObject private var store: AppStore
     let room: String
     @State private var draft = ""
@@ -332,6 +334,14 @@ struct RoomThreadView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
+                    tickerDraft = ""
+                    showTicker = true
+                } label: {
+                    Image(systemName: "rectangle.and.pencil.and.ellipsis")
+                }
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
                     showScopedSearch = true
                 } label: {
                     Image(systemName: "magnifyingglass")
@@ -347,6 +357,23 @@ struct RoomThreadView: View {
                     Image(systemName: "person.2")
                 }
             }
+        }
+        .alert("Meu ticker nesta sala", isPresented: $showTicker) {
+            TextField("mensagem do mural", text: $tickerDraft)
+            Button("Publicar") {
+                let text = tickerDraft
+                Task {
+                    do {
+                        try await store.client.setRoomTicker(room: room, text: text)
+                        await store.loadRoomTickers()
+                    } catch {
+                        store.flash("Falhou ao publicar ticker")
+                    }
+                }
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Aparece no mural para todos os membros da sala. Enviar vazio remove o seu ticker.")
         }
         .sheet(isPresented: $showScopedSearch) {
             ScopedSearchView(room: room, username: nil).environmentObject(store)

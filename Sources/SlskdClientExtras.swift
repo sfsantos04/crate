@@ -63,6 +63,13 @@ extension SlskdClient {
         return try decode(InterestPair.self, from: data)
     }
 
+    // MARK: Ticker próprio
+
+    func setRoomTicker(room: String, text: String) async throws {
+        let body = try JSONSerialization.data(withJSONObject: text, options: .fragmentsAllowed)
+        _ = try await send("/api/v0/rooms/joined/\(seg(room))/ticker", method: "POST", body: body)
+    }
+
     // MARK: Privilégios
 
     func grantPrivileges(to username: String, days: Int) async throws {
