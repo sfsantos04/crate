@@ -8,9 +8,9 @@ struct FileEntry: Identifiable {
 }
 
 extension SlskdClient {
-    func listFiles(path: String) async throws -> (path: String, root: String, entries: [FileEntry]) {
+    func listFiles(path: String, root: String = "downloads") async throws -> (path: String, root: String, entries: [FileEntry]) {
         let encoded = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
-        let data = try await send("/api/v0/files?path=\(encoded)")
+        let data = try await send("/api/v0/files?path=\(encoded)&root=\(root)")
         let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         let raw = (object["entries"] as? [[String: Any]]) ?? []
         let entries = raw.compactMap { item -> FileEntry? in

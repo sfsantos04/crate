@@ -16,9 +16,19 @@ struct FilesBrowserView: View {
     @State private var entries: [FileEntry] = []
     @State private var loading = true
     @State private var playing: PlayItem?
+    @State private var root = "downloads"
 
     var body: some View {
         List {
+            Section {
+                Picker("Origem", selection: $root) {
+                    Text("Baixados").tag("downloads")
+                    Text("Em andamento").tag("incomplete")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: root) { _, _ in load("") }
+            }
+
             Section {
                 HStack(spacing: 6) {
                     Image(systemName: "internaldrive").font(.caption2).foregroundStyle(Theme.accent)
@@ -91,7 +101,7 @@ struct FilesBrowserView: View {
         loading = true
         Task {
             defer { loading = false }
-            if let result = try? await store.client.listFiles(path: newPath) {
+            if let result = try? await store.client.listFiles(path: newPath, root: root) {
                 path = result.path
                 root = result.root
                 entries = result.entries
@@ -103,7 +113,7 @@ struct FilesBrowserView: View {
         let full = path.isEmpty ? entry.name : "\(path)/\(entry.name)"
         Task {
             do {
-                let url = try await store.client.streamLink(path: full)
+                let url = try await store.client.streamLink(path: full, root: root)
                 playing = PlayItem(title: entry.name, url: url)
             } catch {
                 store.flash("Não consegui abrir o arquivo")

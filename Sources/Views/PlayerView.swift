@@ -3,8 +3,8 @@ import SwiftUI
 
 extension SlskdClient {
     /// Pede ao servidor um link temporário (6h) para tocar o arquivo.
-    func streamLink(path: String) async throws -> URL {
-        let body = try JSONSerialization.data(withJSONObject: ["path": path])
+    func streamLink(path: String, root: String = "downloads") async throws -> URL {
+        let body = try JSONSerialization.data(withJSONObject: ["path": path, "root": root])
         let data = try await send("/api/v0/files/link", method: "POST", body: body)
 
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
