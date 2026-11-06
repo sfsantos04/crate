@@ -71,6 +71,16 @@ struct SettingsView: View {
                             Label("Pastas pausadas", systemImage: "pause.rectangle")
                         }
                         NavigationLink {
+                            FilesBrowserView(initialPath: "")
+                        } label: {
+                            Label("Arquivos baixados", systemImage: "folder")
+                        }
+                        NavigationLink {
+                            DestinationView()
+                        } label: {
+                            Label("Pasta de destino", systemImage: "arrow.down.doc")
+                        }
+                        NavigationLink {
                             LogsView()
                         } label: {
                             Label("Logs", systemImage: "doc.text.magnifyingglass")

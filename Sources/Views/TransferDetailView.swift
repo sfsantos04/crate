@@ -29,6 +29,23 @@ struct TransferDetailView: View {
                 }
 
                 Section {
+                    if let folder = file.sourceFolder {
+                        HStack {
+                            Text("Pasta").font(.footnote).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(folder).font(.caption2).lineLimit(1)
+                        }
+                        NavigationLink {
+                            FilesBrowserView(initialPath: folder)
+                        } label: {
+                            Label("Ver pasta no servidor", systemImage: "folder")
+                        }
+                    }
+                } header: {
+                    SectionLabel(text: "No servidor")
+                }
+
+                Section {
                     Button {
                         Task {
                             await store.retry(file)
@@ -69,6 +86,8 @@ struct TransferDetailView: View {
         }
     }
 
+    private var unused: Int { 0 }
+
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
             Text(label).font(.footnote).foregroundStyle(.secondary)
@@ -78,5 +97,15 @@ struct TransferDetailView: View {
                 .multilineTextAlignment(.trailing)
                 .lineLimit(2)
         }
+    }
+}
+
+extension TransferFile {
+    /// Pasta local criada pelo slskd: o nome da pasta de origem no peer.
+    var sourceFolder: String? {
+        guard let raw = filename else { return nil }
+        let parts = raw.split(whereSeparator: { $0 == "\\" || $0 == "/" }).map(String.init)
+        guard parts.count >= 2 else { return nil }
+        return parts[parts.count - 2]
     }
 }
