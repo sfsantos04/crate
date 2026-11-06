@@ -78,6 +78,7 @@ final class AppearanceStore: ObservableObject {
     }
 
     private func apply() {
+        Theme.style = style
         let resolved = appearance.resolved
         switch style {
         case .sonda: Theme.current = Palettes.sonda(resolved)

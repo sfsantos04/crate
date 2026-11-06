@@ -13,6 +13,7 @@ struct ThemePalette {
 /// Tokens visuais do Sonda: o tema atual decide as cores, o resto do app não muda.
 enum Theme {
     static var current: ThemePalette = Palettes.sonda(.dark)
+    static var style: ThemeStyle = .sonda
 
     static var ink: Color { current.heroBottom }
     static var deep: Color { current.heroTop }

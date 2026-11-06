@@ -6,7 +6,7 @@ struct SearchFilters: Equatable, Codable {
     var freeSlotOnly = false
     var onlyUnlocked = false
     var dedupeRepeated = true
-    var maxResults = 2000
+    var maxResults = 0
     var sortMode = SortMode.relevance
     var blockedWords: [String] = []
 
@@ -29,7 +29,7 @@ struct SearchFilters: Equatable, Codable {
     }
 
     var isActive: Bool {
-        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 2000 || sortMode != .relevance || !blockedWords.isEmpty
+        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 0 || sortMode != .relevance || !blockedWords.isEmpty
     }
 
     var summary: String {
@@ -39,7 +39,7 @@ struct SearchFilters: Equatable, Codable {
         if freeSlotOnly { parts.append("slot livre") }
         if onlyUnlocked { parts.append("sem trava") }
         if !dedupeRepeated { parts.append("com repetidos") }
-        if maxResults != 2000 { parts.append("máx \(maxResults)") }
+        if maxResults != 0 { parts.append("máx \(maxResults)") }
         if sortMode != .relevance { parts.append(sortMode.label.lowercased()) }
         if !blockedWords.isEmpty { parts.append("\(blockedWords.count) bloqueadas") }
         return parts.isEmpty ? "Filtros" : parts.joined(separator: " · ")
@@ -187,7 +187,7 @@ struct SearchView: View {
         }
         let minSize = Int64(filters.minSizeMB) * 1_048_576
         var seen = Set<String>()
-        var budget = max(1, filters.maxResults)
+        var budget = filters.maxResults > 0 ? filters.maxResults : Int.max
 
         let filtered = peers.compactMap { peer -> SearchResponse? in
             var copy = peer
@@ -298,6 +298,74 @@ struct SearchView: View {
 
     @ViewBuilder
     private func row(file: SearchFile, peer: SearchResponse) -> some View {
+        switch Theme.style {
+        case .soulseek:
+            tableRow(file: file, peer: peer)
+        case .nicotine:
+            compactRow(file: file, peer: peer)
+        case .sonda:
+            cardRow(file: file, peer: peer)
+        }
+    }
+
+    /// Estilo SoulseekQt: linha densa com colunas fixas.
+    private func tableRow(file: SearchFile, peer: SearchResponse) -> some View {
+        HStack(spacing: 6) {
+            Text(file.displayName)
+                .font(.system(.caption, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(Fmt.bytes(file.size))
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 62, alignment: .trailing)
+
+            Text((file.bitRate ?? 0) > 0 ? "\(file.bitRate ?? 0)k" : "—")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 44, alignment: .trailing)
+
+            Text(peer.username ?? "?")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(Theme.accent)
+                .lineLimit(1)
+                .frame(width: 84, alignment: .leading)
+
+            Button {
+                Task { await store.download(file: file, from: peer.username ?? "") }
+            } label: {
+                Image(systemName: "arrow.down").font(.caption2)
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.vertical, 1)
+    }
+
+    /// Estilo Nicotine+: linha compacta, sem cartão.
+    private func compactRow(file: SearchFile, peer: SearchResponse) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.displayName).font(.caption).lineLimit(1)
+                Text("\(peer.username ?? "?") · \(Fmt.bytes(file.size)) · \(file.bitRate ?? 0)k")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button {
+                Task { await store.download(file: file, from: peer.username ?? "") }
+            } label: {
+                Image(systemName: "arrow.down.circle").font(.caption)
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.vertical, 1)
+    }
+
+    /// Estilo Sonda: cartão com duas linhas.
+    private func cardRow(file: SearchFile, peer: SearchResponse) -> some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(file.displayName).font(.subheadline).lineLimit(2)
@@ -388,8 +456,8 @@ struct FiltersSheet: View {
                     Toggle("Somente slot livre", isOn: $filters.freeSlotOnly)
                     Toggle("Somente arquivos sem trava", isOn: $filters.onlyUnlocked)
                     Toggle("Descartar resultados repetidos", isOn: $filters.dedupeRepeated)
-                    Stepper("Máximo de resultados: \(filters.maxResults)",
-                            value: $filters.maxResults, in: 50...2000, step: 50)
+                    Stepper("Máximo de resultados: \(filters.maxResults == 0 ? "sem limite" : "\(filters.maxResults)")",
+                            value: $filters.maxResults, in: 0...2000, step: 50)
                     TextField("bloquear palavras (remix, ao vivo, cover)", text: $blockedDraft)
                         .onAppear {
                             if blockedDraft.isEmpty {
