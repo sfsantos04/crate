@@ -21,6 +21,20 @@ extension AppStore {
         }
     }
 
+    func grantPrivileges(to username: String, days: Int) async {
+        do {
+            try await client.grantPrivileges(to: username, days: days)
+            flash("Privilégios enviados: \(days) dia(s) para \(username)")
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            flash("Falhou: \(message)")
+        }
+    }
+
+    func loadOwnPrivileges() async {
+        ownPrivilegeDays = (try? await client.ownPrivileges()) ?? 0
+    }
+
     func loadRoomTickers() async {
         guard forkMode, let room = activeRoom else { return }
         roomTickers = (try? await client.tickers(room: room)) ?? []

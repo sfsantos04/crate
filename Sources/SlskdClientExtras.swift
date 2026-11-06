@@ -63,6 +63,18 @@ extension SlskdClient {
         return try decode(InterestPair.self, from: data)
     }
 
+    // MARK: Privilégios
+
+    func grantPrivileges(to username: String, days: Int) async throws {
+        _ = try await send("/api/v0/users/\(seg(username))/privileges?days=\(days)", method: "PUT")
+    }
+
+    func ownPrivileges() async throws -> Int {
+        let data = try await send("/api/v0/profile/privileges")
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return 0 }
+        return (object["daysRemaining"] as? Int) ?? 0
+    }
+
     // MARK: Tickers (mural da sala)
 
     func tickers(room: String) async throws -> [(username: String, message: String)] {

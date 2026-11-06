@@ -113,6 +113,17 @@ struct UserProfileView: View {
                     Label(store.ignoredUsers.contains(username) ? "Deixar de ignorar" : "Ignorar usuário",
                           systemImage: "nosign")
                 }
+                Menu {
+                    ForEach([1, 3, 7, 30], id: \.self) { days in
+                        Button("\(days) dia\(days > 1 ? "s" : "")") {
+                            Task { await store.grantPrivileges(to: username, days: days) }
+                        }
+                    }
+                } label: {
+                    Label("Presentear privilégios", systemImage: "gift")
+                }
+                .disabled(store.ownPrivilegeDays <= 0)
+
                 Button {
                     showScopedSearch = true
                 } label: {
@@ -136,6 +147,7 @@ struct UserProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.loadLists()
+            await store.loadOwnPrivileges()
             note = await store.loadNote(for: username)
             stats = try? await store.client.statistics(of: username)
             interests = try? await store.client.interests(of: username)
