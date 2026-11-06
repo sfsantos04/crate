@@ -1,6 +1,12 @@
 import SwiftUI
 
 /// Navegador somente leitura da pasta de downloads do servidor.
+struct PlayItem: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let url: URL
+}
+
 struct FilesBrowserView: View {
     let initialPath: String
 
@@ -9,6 +15,7 @@ struct FilesBrowserView: View {
     @State private var root = ""
     @State private var entries: [FileEntry] = []
     @State private var loading = true
+    @State private var playing: PlayItem?
 
     var body: some View {
         List {
@@ -48,11 +55,15 @@ struct FilesBrowserView: View {
                             }
                         }
                     } else {
-                        HStack {
-                            Image(systemName: "doc").foregroundStyle(.secondary)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(entry.name).font(.caption).lineLimit(2)
-                                Text(Fmt.bytes(entry.size)).font(.caption2).foregroundStyle(.tertiary)
+                        Button {
+                            play(entry)
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.circle").foregroundStyle(Theme.accent)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(entry.name).font(.caption).lineLimit(2).foregroundStyle(.primary)
+                                    Text(Fmt.bytes(entry.size)).font(.caption2).foregroundStyle(.tertiary)
+                                }
                             }
                         }
                     }
@@ -71,6 +82,9 @@ struct FilesBrowserView: View {
             if path.isEmpty { load(initialPath) }
         }
         .refreshable { load(path) }
+        .navigationDestination(item: $playing) { item in
+            PlayerView(title: item.title, url: item.url)
+        }
     }
 
     private func load(_ newPath: String) {
@@ -81,6 +95,18 @@ struct FilesBrowserView: View {
                 path = result.path
                 root = result.root
                 entries = result.entries
+            }
+        }
+    }
+
+    private func play(_ entry: FileEntry) {
+        let full = path.isEmpty ? entry.name : "\(path)/\(entry.name)"
+        Task {
+            do {
+                let url = try await store.client.streamLink(path: full)
+                playing = PlayItem(title: entry.name, url: url)
+            } catch {
+                store.flash("Não consegui abrir o arquivo")
             }
         }
     }

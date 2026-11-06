@@ -8,6 +8,7 @@ struct TransferDetailView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
     @State private var copied = false
+    @State private var playing: PlayItem?
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,11 @@ struct TransferDetailView: View {
                             FilesBrowserView(initialPath: folder)
                         } label: {
                             Label("Ver pasta no servidor", systemImage: "folder")
+                        }
+                        Button {
+                            playFile(folder: folder)
+                        } label: {
+                            Label("Tocar arquivo", systemImage: "play.circle")
                         }
                     }
                 } header: {
@@ -82,6 +88,22 @@ struct TransferDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fechar") { dismiss() }
                 }
+            }
+            .navigationDestination(item: $playing) { item in
+                PlayerView(title: item.title, url: item.url)
+            }
+        }
+    }
+
+    private func playFile(folder: String) {
+        guard let raw = file.filename else { return }
+        let name = raw.split(whereSeparator: { $0 == "\\" || $0 == "/" }).last.map(String.init) ?? raw
+        Task {
+            do {
+                let url = try await store.client.streamLink(path: "\(folder)/\(name)")
+                playing = PlayItem(title: name, url: url)
+            } catch {
+                store.flash("Arquivo ainda não está no servidor")
             }
         }
     }
