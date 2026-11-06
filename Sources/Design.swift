@@ -13,7 +13,6 @@ struct ThemePalette {
 /// Tokens visuais do Sonda: o tema atual decide as cores, o resto do app não muda.
 enum Theme {
     static var current: ThemePalette = Palettes.sonda(.dark)
-    static var style: ThemeStyle = .sonda
 
     static var ink: Color { current.heroBottom }
     static var deep: Color { current.heroTop }
@@ -54,43 +53,6 @@ enum Palettes {
         }
     }
 
-    static func soulseek(_ appearance: ThemeAppearance) -> ThemePalette {
-        switch appearance {
-        case .light:
-            return ThemePalette(heroTop: Color(red: 0.16, green: 0.26, blue: 0.52),
-                                heroBottom: Color(red: 0.07, green: 0.13, blue: 0.30),
-                                accent: Color(red: 0.09, green: 0.32, blue: 0.63),
-                                ok: Color(red: 0.16, green: 0.55, blue: 0.24),
-                                warn: Color(red: 0.79, green: 0.50, blue: 0.05),
-                                danger: Color(red: 0.72, green: 0.13, blue: 0.13))
-        default:
-            return ThemePalette(heroTop: Color(red: 0.14, green: 0.22, blue: 0.44),
-                                heroBottom: Color(red: 0.05, green: 0.09, blue: 0.20),
-                                accent: Color(red: 0.45, green: 0.66, blue: 0.94),
-                                ok: Color(red: 0.36, green: 0.78, blue: 0.45),
-                                warn: Color(red: 0.95, green: 0.72, blue: 0.30),
-                                danger: Color(red: 0.93, green: 0.40, blue: 0.40))
-        }
-    }
-
-    static func nicotine(_ appearance: ThemeAppearance) -> ThemePalette {
-        switch appearance {
-        case .light:
-            return ThemePalette(heroTop: Color(red: 0.30, green: 0.26, blue: 0.60),
-                                heroBottom: Color(red: 0.14, green: 0.11, blue: 0.32),
-                                accent: Color(red: 0.36, green: 0.29, blue: 0.78),
-                                ok: Color(red: 0.13, green: 0.60, blue: 0.45),
-                                warn: Color(red: 0.84, green: 0.52, blue: 0.12),
-                                danger: Color(red: 0.80, green: 0.20, blue: 0.33))
-        default:
-            return ThemePalette(heroTop: Color(red: 0.20, green: 0.18, blue: 0.42),
-                                heroBottom: Color(red: 0.09, green: 0.08, blue: 0.20),
-                                accent: Color(red: 0.62, green: 0.55, blue: 0.98),
-                                ok: Color(red: 0.38, green: 0.82, blue: 0.62),
-                                warn: Color(red: 0.98, green: 0.72, blue: 0.36),
-                                danger: Color(red: 0.96, green: 0.42, blue: 0.55))
-        }
-    }
 }
 
 struct HeroCard<Content: View>: View {

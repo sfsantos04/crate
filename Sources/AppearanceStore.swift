@@ -1,21 +1,5 @@
 import SwiftUI
 
-enum ThemeStyle: String, CaseIterable, Identifiable {
-    case sonda
-    case soulseek
-    case nicotine
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .sonda: return "Sonda"
-        case .soulseek: return "SoulseekQt"
-        case .nicotine: return "Nicotine+"
-        }
-    }
-}
-
 enum ThemeAppearance: String, CaseIterable, Identifiable {
     case system
     case light
@@ -50,23 +34,13 @@ enum ThemeAppearance: String, CaseIterable, Identifiable {
 final class AppearanceStore: ObservableObject {
     static let shared = AppearanceStore()
 
-    @Published private(set) var style: ThemeStyle
     @Published private(set) var appearance: ThemeAppearance
     @Published private(set) var revision = 0
 
-    private let styleKey = "themeStyle"
     private let appearanceKey = "themeAppearance"
 
     private init() {
-        style = ThemeStyle(rawValue: UserDefaults.standard.string(forKey: styleKey) ?? "") ?? .sonda
         appearance = ThemeAppearance(rawValue: UserDefaults.standard.string(forKey: appearanceKey) ?? "") ?? .system
-        apply()
-    }
-
-    func set(style newStyle: ThemeStyle) {
-        guard newStyle != style else { return }
-        style = newStyle
-        UserDefaults.standard.set(newStyle.rawValue, forKey: styleKey)
         apply()
     }
 
@@ -78,13 +52,7 @@ final class AppearanceStore: ObservableObject {
     }
 
     private func apply() {
-        Theme.style = style
-        let resolved = appearance.resolved
-        switch style {
-        case .sonda: Theme.current = Palettes.sonda(resolved)
-        case .soulseek: Theme.current = Palettes.soulseek(resolved)
-        case .nicotine: Theme.current = Palettes.nicotine(resolved)
-        }
+        Theme.current = Palettes.sonda(appearance.resolved)
         revision += 1
     }
 }

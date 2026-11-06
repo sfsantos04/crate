@@ -52,9 +52,6 @@ struct SearchView: View {
     @State private var showFilters = false
     @State private var showWishlist = false
     @State private var showHistory = false
-    @AppStorage("resultsTable") private var tableLayout = false
-    @State private var sortColumn = 0
-    @State private var sortAscending = true
     @State private var blockedDraft = ""
     @State private var filters = SearchFilters()
 
@@ -117,13 +114,7 @@ struct SearchView: View {
                     }
                 }
 
-                if !filteredPeers.isEmpty && tableLayout {
-                    ResultsTable(rows: tableRows,
-                                 column: $sortColumn,
-                                 ascending: $sortAscending) { file, peer in
-                        Task { await store.download(file: file, from: peer) }
-                    }
-                } else if !filteredPeers.isEmpty {
+                if !filteredPeers.isEmpty {
                     ForEach(filteredPeers) { peer in
                         Section {
                             ForEach(groupedFiles(peer.files ?? [])) { group in
@@ -251,15 +242,7 @@ struct SearchView: View {
         }
     }
 
-    private var tableRows: [ResultRow] {
-        filteredPeers.flatMap { peer in
-            (peer.files ?? []).prefix(400).map { file in
-                ResultRow(id: "\(peer.username ?? "?")|\(file.filename ?? UUID().uuidString)",
-                          file: file,
-                          peer: peer)
-            }
-        }
-    }
+
 
     private func groupedFiles(_ files: [SearchFile]) -> [FolderGroup] {
         var order: [String] = []
@@ -317,73 +300,9 @@ struct SearchView: View {
 
     @ViewBuilder
     private func row(file: SearchFile, peer: SearchResponse) -> some View {
-        switch Theme.style {
-        case .soulseek:
-            tableRow(file: file, peer: peer)
-        case .nicotine:
-            compactRow(file: file, peer: peer)
-        case .sonda:
-            cardRow(file: file, peer: peer)
-        }
+        cardRow(file: file, peer: peer)
     }
 
-    /// Estilo SoulseekQt: linha densa com colunas fixas.
-    private func tableRow(file: SearchFile, peer: SearchResponse) -> some View {
-        HStack(spacing: 6) {
-            Text(file.displayName)
-                .font(.system(.caption, design: .monospaced))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(Fmt.bytes(file.size))
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 62, alignment: .trailing)
-
-            Text((file.bitRate ?? 0) > 0 ? "\(file.bitRate ?? 0)k" : "—")
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 44, alignment: .trailing)
-
-            Text(peer.username ?? "?")
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(Theme.accent)
-                .lineLimit(1)
-                .frame(width: 84, alignment: .leading)
-
-            Button {
-                Task { await store.download(file: file, from: peer.username ?? "") }
-            } label: {
-                Image(systemName: "arrow.down").font(.caption2)
-            }
-            .buttonStyle(.borderless)
-        }
-        .padding(.vertical, 1)
-    }
-
-    /// Estilo Nicotine+: linha compacta, sem cartão.
-    private func compactRow(file: SearchFile, peer: SearchResponse) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(file.displayName).font(.caption).lineLimit(1)
-                Text("\(peer.username ?? "?") · \(Fmt.bytes(file.size)) · \(file.bitRate ?? 0)k")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer()
-            Button {
-                Task { await store.download(file: file, from: peer.username ?? "") }
-            } label: {
-                Image(systemName: "arrow.down.circle").font(.caption)
-            }
-            .buttonStyle(.borderless)
-        }
-        .padding(.vertical, 1)
-    }
-
-    /// Estilo Sonda: cartão com duas linhas.
     private func cardRow(file: SearchFile, peer: SearchResponse) -> some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
