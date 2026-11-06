@@ -8,11 +8,6 @@ extension SlskdClient {
     }
 
     // Conta
-    func setStatus(away: Bool) async throws {
-        let body = try JSONSerialization.data(withJSONObject: away ? "away" : "online", options: .fragmentsAllowed)
-        _ = try await send("/api/v0/profile/status", method: "PUT", body: body)
-    }
-
     func changePassword(_ password: String) async throws {
         let body = try JSONSerialization.data(withJSONObject: password, options: .fragmentsAllowed)
         _ = try await send("/api/v0/profile/password", method: "PUT", body: body)
