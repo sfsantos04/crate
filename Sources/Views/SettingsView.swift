@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var appearance: AppearanceStore
+    @AppStorage("resultsTable") private var resultsTable = false
     @State private var hostDraft = ""
     @State private var password = ""
     @State private var message: String?
@@ -28,6 +29,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    Toggle("Resultados em tabela", isOn: $resultsTable)
+                } footer: {
+                    Text("Tabela mostra colunas ordenáveis e mais resultados por tela. Desligado, usa cartões.")
                 }
 
                 Section("Conexão") {

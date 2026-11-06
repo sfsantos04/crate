@@ -52,6 +52,9 @@ struct SearchView: View {
     @State private var showFilters = false
     @State private var showWishlist = false
     @State private var showHistory = false
+    @AppStorage("resultsTable") private var tableLayout = false
+    @State private var sortColumn = 0
+    @State private var sortAscending = true
     @State private var blockedDraft = ""
     @State private var filters = SearchFilters()
 
@@ -114,7 +117,13 @@ struct SearchView: View {
                     }
                 }
 
-                if !filteredPeers.isEmpty {
+                if !filteredPeers.isEmpty && tableLayout {
+                    ResultsTable(rows: tableRows,
+                                 column: $sortColumn,
+                                 ascending: $sortAscending) { file, peer in
+                        Task { await store.download(file: file, from: peer) }
+                    }
+                } else if !filteredPeers.isEmpty {
                     ForEach(filteredPeers) { peer in
                         Section {
                             ForEach(groupedFiles(peer.files ?? [])) { group in
@@ -238,6 +247,16 @@ struct SearchView: View {
                 let r = rhs.hasFreeUploadSlot ?? false
                 if l != r { return l && !r }
                 return (lhs.uploadSpeed ?? 0) > (rhs.uploadSpeed ?? 0)
+            }
+        }
+    }
+
+    private var tableRows: [ResultRow] {
+        filteredPeers.flatMap { peer in
+            (peer.files ?? []).prefix(400).map { file in
+                ResultRow(id: "\(peer.username ?? "?")|\(file.filename ?? UUID().uuidString)",
+                          file: file,
+                          peer: peer)
             }
         }
     }
