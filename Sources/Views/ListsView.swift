@@ -8,6 +8,7 @@ struct ListsView: View {
     @State private var newGroupDraft = ""
     @State private var banDraft = ""
     @AppStorage("blockedWords") private var blockedRaw = ""
+    @State private var presence: [String: Bool] = [:]
 
     var body: some View {
         List {
@@ -17,6 +18,9 @@ struct ListsView: View {
                 }
                 ForEach(store.buddies) { buddy in
                     HStack {
+                        Circle()
+                            .fill((presence[buddy.username ?? ""] ?? false) ? Theme.ok : Color.secondary.opacity(0.35))
+                            .frame(width: 7, height: 7)
                         Text(buddy.username ?? "?").font(.subheadline)
                         Spacer()
                         Button {
@@ -187,10 +191,22 @@ struct ListsView: View {
         }
         .task {
             await store.loadLists()
+            await loadPresence()
             await store.loadGroups()
             await store.loadBanned()
         }
         .refreshable { await store.loadLists() }
+    }
+
+    private func loadPresence() async {
+        guard store.forkMode else { return }
+        var map: [String: Bool] = [:]
+        for buddy in store.buddies {
+            guard let name = buddy.username else { continue }
+            let status = (try? await store.client.userStatus(name)) ?? "unknown"
+            map[name] = status.lowercased().contains("online")
+        }
+        presence = map
     }
 
     private func submit(_ draft: Binding<String>, buddy: Bool) {

@@ -57,6 +57,11 @@ struct SettingsView: View {
                         } label: {
                             Label("Pastas pausadas", systemImage: "pause.rectangle")
                         }
+                        NavigationLink {
+                            LogsView()
+                        } label: {
+                            Label("Logs", systemImage: "doc.text.magnifyingglass")
+                        }
                     }
                 }
 

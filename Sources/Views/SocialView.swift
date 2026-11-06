@@ -318,6 +318,8 @@ struct RoomThreadView: View {
     @AppStorage("blockedWords") private var blockedRaw = ""
     @State private var showTicker = false
     @State private var tickerDraft = ""
+    @State private var showInvite = false
+    @State private var inviteName = ""
     @EnvironmentObject private var store: AppStore
     let room: String
     @State private var draft = ""
@@ -420,6 +422,53 @@ struct RoomThreadView: View {
                     } label: {
                         Text(member).font(.subheadline)
                     }
+                    .swipeActions {
+                        Button {
+                            Task {
+                                try? await store.client.addRoomOperator(room, member)
+                                store.flash("\(member) agora é operador")
+                            }
+                        } label: {
+                            Label("Operador", systemImage: "star")
+                        }
+                        .tint(.orange)
+
+                        Button(role: .destructive) {
+                            Task {
+                                try? await store.client.removeRoomOperator(room, member)
+                                store.flash("Operador removido")
+                            }
+                        } label: {
+                            Label("Tirar", systemImage: "star.slash")
+                        }
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            inviteName = ""
+                            showInvite = true
+                        } label: {
+                            Image(systemName: "person.badge.plus")
+                        }
+                    }
+                }
+                .alert("Convidar para a sala", isPresented: $showInvite) {
+                    TextField("usuário", text: $inviteName)
+                    Button("Convidar") {
+                        let name = inviteName.trimmingCharacters(in: .whitespaces)
+                        Task {
+                            do {
+                                try await store.client.inviteRoomMember(room, name)
+                                store.flash("Convite enviado a \(name)")
+                            } catch {
+                                store.flash("Falhou ao convidar")
+                            }
+                        }
+                    }
+                    Button("Cancelar", role: .cancel) {}
+                } message: {
+                    Text("Vale para sala privada; em sala pública a pessoa já pode entrar sozinha.")
                 }
                 .navigationTitle("\(members.count) na sala")
                 .navigationBarTitleDisplayMode(.inline)
