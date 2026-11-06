@@ -6,7 +6,7 @@ struct SearchFilters: Equatable {
     var freeSlotOnly = false
     var onlyUnlocked = false
     var dedupeRepeated = true
-    var maxResults = 500
+    var maxResults = 2000
     var sortMode = SortMode.relevance
 
     enum SortMode: Int, CaseIterable, Identifiable {
@@ -28,7 +28,7 @@ struct SearchFilters: Equatable {
     }
 
     var isActive: Bool {
-        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 500 || sortMode != .relevance
+        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 2000 || sortMode != .relevance
     }
 
     var summary: String {
@@ -38,7 +38,7 @@ struct SearchFilters: Equatable {
         if freeSlotOnly { parts.append("slot livre") }
         if onlyUnlocked { parts.append("sem trava") }
         if !dedupeRepeated { parts.append("com repetidos") }
-        if maxResults != 500 { parts.append("máx \(maxResults)") }
+        if maxResults != 2000 { parts.append("máx \(maxResults)") }
         if sortMode != .relevance { parts.append(sortMode.label.lowercased()) }
         return parts.isEmpty ? "Filtros" : parts.joined(separator: " · ")
     }
