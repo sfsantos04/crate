@@ -30,8 +30,9 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     Toggle("Resultados em tabela", isOn: $resultsTable)
-                } footer: {
                     Text("Tabela mostra colunas ordenáveis e mais resultados por tela. Desligado, usa cartões.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Conexão") {
