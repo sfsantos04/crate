@@ -183,7 +183,13 @@ actor SlskdClient {
     // MARK: Busca
 
     func startSearch(text: String) async throws -> SearchResultSet {
-        let body = try JSONSerialization.data(withJSONObject: ["searchText": text])
+        // o padrão da biblioteca corta em 250 peers, 25k arquivos e 15s; aqui pedimos mais
+        let body = try JSONSerialization.data(withJSONObject: [
+            "searchText": text,
+            "responseLimit": 1000,
+            "fileLimit": 250000,
+            "searchTimeout": 45000,
+        ])
         let data = try await send("/api/v0/searches", method: "POST", body: body)
         return try decode(SearchResultSet.self, from: data)
     }
