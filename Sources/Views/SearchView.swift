@@ -8,6 +8,7 @@ struct SearchFilters: Equatable {
     var dedupeRepeated = true
     var maxResults = 2000
     var sortMode = SortMode.relevance
+    var blockedWords: [String] = []
 
     enum SortMode: Int, CaseIterable, Identifiable {
         case relevance = 0
@@ -28,7 +29,7 @@ struct SearchFilters: Equatable {
     }
 
     var isActive: Bool {
-        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 2000 || sortMode != .relevance
+        minBitrate > 0 || minSizeMB > 0 || freeSlotOnly || onlyUnlocked || !dedupeRepeated || maxResults != 2000 || sortMode != .relevance || !blockedWords.isEmpty
     }
 
     var summary: String {
@@ -40,6 +41,7 @@ struct SearchFilters: Equatable {
         if !dedupeRepeated { parts.append("com repetidos") }
         if maxResults != 2000 { parts.append("máx \(maxResults)") }
         if sortMode != .relevance { parts.append(sortMode.label.lowercased()) }
+        if !blockedWords.isEmpty { parts.append("\(blockedWords.count) bloqueadas") }
         return parts.isEmpty ? "Filtros" : parts.joined(separator: " · ")
     }
 }
@@ -50,9 +52,25 @@ struct SearchView: View {
     @State private var showFilters = false
     @State private var showWishlist = false
     @State private var showHistory = false
+    @State private var blockedDraft = ""
     @State private var filters = SearchFilters()
 
+    private func loadBlockedWords() {
+        if let saved = UserDefaults.standard.string(forKey: "blockedWords") {
+            blockedDraft = saved
+            filters.blockedWords = saved
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current) }
+                .filter { !$0.isEmpty }
+        }
+    }
+
     var body: some View {
+        content
+            .task { loadBlockedWords() }
+    }
+
+    private var content: some View {
         NavigationStack {
             List {
                 Section {
@@ -174,6 +192,11 @@ struct SearchView: View {
         let filtered = peers.compactMap { peer -> SearchResponse? in
             var copy = peer
             copy.files = (peer.files ?? []).filter { file in
+                if !filters.blockedWords.isEmpty {
+                    let name = (file.filename ?? "").folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                    if filters.blockedWords.contains(where: { name.contains($0) }) { return false }
+                }
+
                 guard (file.size ?? 0) >= minSize,
                       (file.bitRate ?? 0) >= filters.minBitrate,
                       !filters.freeSlotOnly || (peer.hasFreeUploadSlot ?? false),
@@ -323,6 +346,16 @@ struct FiltersSheet: View {
                     Toggle("Descartar resultados repetidos", isOn: $filters.dedupeRepeated)
                     Stepper("Máximo de resultados: \(filters.maxResults)",
                             value: $filters.maxResults, in: 50...2000, step: 50)
+                    TextField("bloquear palavras (remix, ao vivo, cover)", text: $blockedDraft)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: blockedDraft) { _, value in
+                            filters.blockedWords = value
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespaces).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current) }
+                                .filter { !$0.isEmpty }
+                            UserDefaults.standard.set(value, forKey: "blockedWords")
+                        }
                     Picker("Ordenar por", selection: $filters.sortMode) {
                         ForEach(SearchFilters.SortMode.allCases) { mode in
                             Text(mode.label).tag(mode)
