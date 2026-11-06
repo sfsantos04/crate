@@ -171,9 +171,10 @@ struct UserProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.loadLists()
-            let limit = (try? await store.client.userLimit(username)) ?? (0, 0)
-            limitConcurrent = limit.concurrent
-            limitMB = limit.maxMB
+            if let limit = try? await store.client.userLimit(username) {
+                limitConcurrent = limit.concurrent
+                limitMB = limit.maxMB
+            }
             await store.loadOwnPrivileges()
             note = await store.loadNote(for: username)
             stats = try? await store.client.statistics(of: username)
