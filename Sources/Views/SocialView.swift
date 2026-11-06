@@ -2,10 +2,6 @@ import SwiftUI
 
 struct SocialView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var mode = 0
-    @State private var sortByUsers = true
-    @State private var roomQuery = ""
-
     var body: some View {
         NavigationStack {
             Group {
@@ -192,6 +188,7 @@ struct SocialView: View {
 }
 
 struct ChatThreadView: View {
+    @AppStorage("blockedWords") private var blockedRaw = ""
     @EnvironmentObject private var store: AppStore
     let peer: String
     @State private var draft = ""
@@ -224,7 +221,7 @@ struct ChatThreadView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(store.thread.filter { !store.ignoredUsers.contains($0.username ?? "") }) { message in
+                        ForEach(store.thread.filter { !store.ignoredUsers.contains($0.username ?? "") && !ChatFilter.isBlocked($0.message, raw: blockedRaw) }) { message in
                             bubble(message).id(message.id)
                         }
                     }
@@ -280,6 +277,7 @@ struct ChatThreadView: View {
 }
 
 struct RoomThreadView: View {
+    @AppStorage("blockedWords") private var blockedRaw = ""
     @EnvironmentObject private var store: AppStore
     let room: String
     @State private var draft = ""
@@ -292,7 +290,7 @@ struct RoomThreadView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 6) {
-                        ForEach(store.roomThread.filter { !store.ignoredUsers.contains($0.username ?? "") }) { message in
+                        ForEach(store.roomThread.filter { !store.ignoredUsers.contains($0.username ?? "") && !ChatFilter.isBlocked($0.message, raw: blockedRaw) }) { message in
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                 Text(message.username ?? "?")
                                     .font(.caption.weight(.semibold))

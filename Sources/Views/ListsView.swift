@@ -7,6 +7,7 @@ struct ListsView: View {
     @State private var groupDraft = ""
     @State private var newGroupDraft = ""
     @State private var banDraft = ""
+    @AppStorage("blockedWords") private var blockedRaw = ""
 
     var body: some View {
         List {
@@ -77,6 +78,16 @@ struct ListsView: View {
             } footer: {
                 Text("Lista local do fork: o protocolo do Soulseek não tem ignore, então ela vale para este app e para as telas que filtrarem por ela.")
             }
+        Section {
+            TextField("remix, ao vivo, cover", text: $blockedRaw)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } header: {
+            SectionLabel(text: "Palavras bloqueadas")
+        } footer: {
+            Text("Vale na busca e nas mensagens de chat e sala. Separe por vírgula; acento e maiúscula são ignorados.")
+        }
+
         Section {
             ForEach(Array(store.groups.keys).sorted(), id: \.self) { group in
                 DisclosureGroup {
