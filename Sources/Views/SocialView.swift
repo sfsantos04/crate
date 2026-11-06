@@ -2,6 +2,10 @@ import SwiftUI
 
 struct SocialView: View {
     @EnvironmentObject private var store: AppStore
+    @State private var mode = 0
+    @State private var sortByUsers = true
+    @State private var roomQuery = ""
+
     var body: some View {
         NavigationStack {
             Group {
