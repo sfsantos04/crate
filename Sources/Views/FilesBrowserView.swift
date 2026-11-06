@@ -12,7 +12,7 @@ struct FilesBrowserView: View {
 
     @EnvironmentObject private var store: AppStore
     @State private var path: String = ""
-    @State private var root = ""
+    @State private var rootPath = ""
     @State private var entries: [FileEntry] = []
     @State private var loading = true
     @State private var playing: PlayItem?
@@ -32,7 +32,7 @@ struct FilesBrowserView: View {
             Section {
                 HStack(spacing: 6) {
                     Image(systemName: "internaldrive").font(.caption2).foregroundStyle(Theme.accent)
-                    Text(root.isEmpty ? "carregando…" : root).font(.caption2).foregroundStyle(.secondary)
+                    Text(rootPath.isEmpty ? "carregando…" : rootPath).font(.caption2).foregroundStyle(.secondary)
                     Spacer()
                     Text(path.isEmpty ? "/" : path).font(.caption2).foregroundStyle(Theme.accent)
                 }
@@ -103,7 +103,7 @@ struct FilesBrowserView: View {
             defer { loading = false }
             if let result = try? await store.client.listFiles(path: newPath, root: root) {
                 path = result.path
-                root = result.root
+                rootPath = result.root
                 entries = result.entries
             }
         }
