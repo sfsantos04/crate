@@ -35,6 +35,25 @@ extension AppStore {
         ownPrivilegeDays = (try? await client.ownPrivileges()) ?? 0
     }
 
+    func openSearch(id: String) async {
+        guard !id.isEmpty else { return }
+        do {
+            search = try await client.search(id: id)
+            flash("Busca carregada")
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            flash("Falhou: \(message)")
+        }
+    }
+
+    func deleteSearch(id: String) async {
+        do {
+            try await client.deleteSearch(id: id)
+        } catch {
+            flash("Falhou ao apagar busca")
+        }
+    }
+
     func loadRoomTickers() async {
         guard forkMode, let room = activeRoom else { return }
         roomTickers = (try? await client.tickers(room: room)) ?? []

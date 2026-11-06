@@ -25,6 +25,7 @@ struct SearchView: View {
     @State private var showBrowse = false
     @State private var showFilters = false
     @State private var showWishlist = false
+    @State private var showHistory = false
     @State private var filters = SearchFilters()
 
     var body: some View {
@@ -108,11 +109,18 @@ struct SearchView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if store.forkMode {
+                    HStack(spacing: 12) {
                         Button {
-                            showWishlist = true
+                            showHistory = true
                         } label: {
-                            Image(systemName: "bookmark")
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        if store.forkMode {
+                            Button {
+                                showWishlist = true
+                            } label: {
+                                Image(systemName: "bookmark")
+                            }
                         }
                     }
                 }
@@ -120,6 +128,9 @@ struct SearchView: View {
                     Button("Limpar") { store.clearSearch() }
                         .disabled(store.search == nil)
                 }
+            }
+            .sheet(isPresented: $showHistory) {
+                SearchHistoryView().environmentObject(store)
             }
             .sheet(isPresented: $showWishlist) {
                 WishlistView().environmentObject(store)
