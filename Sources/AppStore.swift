@@ -81,6 +81,7 @@ final class AppStore: ObservableObject {
     func bootstrap() async {
         guard !isSignedIn else { return }
         guard let password = Keychain.get("password"), !username.isEmpty else { return }
+        Notifier.requestAuthorization()
         await signIn(host: host, username: username, password: password, quiet: true)
     }
 
@@ -142,6 +143,28 @@ final class AppStore: ObservableObject {
         monitor = nil
     }
 
+    private var lastFinishedCount = 0
+    private var lastUnreadCount = 0
+
+    /// Compara o estado anterior e avisa quando algo termina ou chega.
+    private func notifyChanges() {
+        let files = downloads.flatMap { ($0.directories ?? []).flatMap { $0.files ?? [] } }
+        let finished = files.filter { $0.isFinished && !$0.isFailed }
+        if lastFinishedCount > 0, finished.count > lastFinishedCount {
+            let name = finished.last?.filename?
+                .split(whereSeparator: { $0 == "\\" || $0 == "/" })
+                .last.map(String.init) ?? "arquivo"
+            Notifier.post(title: "Download concluído", body: name)
+        }
+        lastFinishedCount = finished.count
+
+        let unread = unreadTotal
+        if lastUnreadCount > 0, unread > lastUnreadCount {
+            Notifier.post(title: "Nova mensagem", body: "\(unread - lastUnreadCount) mensagem(ns) não lida(s)")
+        }
+        lastUnreadCount = unread
+    }
+
     func refresh() async {
         do {
             server = try await client.serverState()
@@ -156,6 +179,7 @@ final class AppStore: ObservableObject {
             }
             lastUpdate = Date()
             errorMessage = nil
+            notifyChanges()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }

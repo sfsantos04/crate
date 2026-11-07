@@ -49,18 +49,18 @@ jobs:
           mkdir -p out/Payload
           cp -R build/Build/Products/Release-iphoneos/Sonda.app out/Payload/
           cd out
-          zip -qry ../Sonda-unsigned.ipa Payload
+          zip -qry ../Crate-unsigned.ipa Payload
           cd ..
-          ls -lh Sonda-unsigned.ipa
-          shasum -a 256 Sonda-unsigned.ipa | tee Sonda-unsigned.ipa.sha256
+          ls -lh Crate-unsigned.ipa
+          shasum -a 256 Crate-unsigned.ipa | tee Crate-unsigned.ipa.sha256
 
       - name: Upload do IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Sonda-unsigned-ipa
+          name: Crate-unsigned-ipa
           path: |
-            Sonda-unsigned.ipa
-            Sonda-unsigned.ipa.sha256
+            Crate-unsigned.ipa
+            Crate-unsigned.ipa.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -70,8 +70,8 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "build-${{ github.run_number }}" \
-            Sonda-unsigned.ipa \
-            Sonda-unsigned.ipa.sha256 \
+            Crate-unsigned.ipa \
+            Crate-unsigned.ipa.sha256 \
             --title "Sonda build ${{ github.run_number }}" \
             --notes "IPA sem assinatura gerado no CI. Instale com SideStore, AltStore ou Sideloadly."
 
